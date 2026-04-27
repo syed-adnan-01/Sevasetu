@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { LayoutDashboard, FileText, ListTodo, Users, BarChart3, Bell, User, Menu, X, Camera } from "lucide-react";
+import { LayoutDashboard, FileText, ListTodo, Users, BarChart3, Bell, User, Menu, X, Camera, ShieldCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { useAuth } from "../context/AuthContext";
 
@@ -15,7 +15,7 @@ export function Layout() {
     { path: "/history", icon: FileText, label: "History" },
     { path: "/tasks", icon: ListTodo, label: "Tasks" },
     { path: "/volunteers", icon: Users, label: "Volunteers" },
-    { path: "/admin", icon: ListTodo, label: "Admin Panel" },
+    { path: "/admin", icon: ShieldCheck, label: "Admin Panel" },
     { path: "/analytics", icon: BarChart3, label: "Analytics" },
   ];
 

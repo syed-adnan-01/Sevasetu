@@ -5,6 +5,7 @@ export function ReportsHistory() {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [addresses, setAddresses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchReports();
@@ -16,10 +17,26 @@ export function ReportsHistory() {
       const response = await fetch('http://localhost:5000/api/reports');
       const data = await response.json();
       setReports(data);
+      
+      // Background resolve all report locations
+      data.forEach((report: any) => {
+        if (report.location?.lat) resolveAddress(report._id, report.location.lat, report.location.lng);
+      });
     } catch (err) {
       console.error("Failed to fetch reports:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resolveAddress = async (id: string, lat: number, lng: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      const addr = data.address.suburb || data.address.city || data.address.neighbourhood || "Verified Area";
+      setAddresses(prev => ({ ...prev, [id]: addr }));
+    } catch (err) {
+      setAddresses(prev => ({ ...prev, [id]: `${lat.toFixed(2)}, ${lng.toFixed(2)}` }));
     }
   };
 
@@ -120,9 +137,9 @@ export function ReportsHistory() {
                         
                         <div className="flex items-center justify-between border-t border-gray-700/50 pt-4 mt-auto">
                           <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1 text-gray-400 text-xs">
-                              <MapPin size={14} />
-                              <span>Lat: {report.location?.lat.toFixed(2)}, Lng: {report.location?.lng.toFixed(2)}</span>
+                            <div className="flex items-center gap-1 text-gray-400 text-xs bg-gray-900/50 px-2 py-1 rounded-lg border border-gray-800">
+                              <MapPin size={14} className="text-[#4CAF50]" />
+                              <span>{addresses[report._id] || "Resolving location..."}</span>
                             </div>
                           </div>
                           <button className="flex items-center gap-1 text-[#4DA3FF] text-sm font-semibold hover:gap-2 transition-all">

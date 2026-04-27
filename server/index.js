@@ -51,6 +51,7 @@ const taskSchema = new mongoose.Schema({
   location: { lat: Number, lng: Number },
   completionProof: String,
   completionNotes: String,
+  proofLocation: { lat: Number, lng: Number },
   verifiedByAdmin: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
@@ -288,8 +289,13 @@ app.put('/api/tasks/:id/assign', async (req, res) => {
 });
 
 app.put('/api/tasks/:id/complete', async (req, res) => {
-  const { completionNotes, completionProof } = req.body;
-  const task = await Task.findByIdAndUpdate(req.params.id, { status: 'completed', completionNotes, completionProof }, { new: true });
+  const { completionNotes, completionProof, proofLocation } = req.body;
+  const task = await Task.findByIdAndUpdate(req.params.id, { 
+    status: 'completed', 
+    completionNotes, 
+    completionProof,
+    proofLocation 
+  }, { new: true });
   res.json(task);
 });
 

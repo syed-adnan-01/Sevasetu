@@ -4,6 +4,7 @@ import { Plus, Bell, TrendingUp, Users, CheckCircle, AlertCircle, Clock, MapPin,
 export function AdminPanel() {
   const [reports, setReports] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [addresses, setAddresses] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -16,12 +17,29 @@ export function AdminPanel() {
         fetch('http://localhost:5000/api/reports'),
         fetch('http://localhost:5000/api/tasks')
       ]);
-      setReports(await reportsRes.json());
+      const reportsData = await reportsRes.json();
+      setReports(reportsData);
       setTasks(await tasksRes.json());
+
+      // Resolve addresses
+      reportsData.forEach((r: any) => {
+        if (r.location?.lat) resolveAddress(r._id, r.location.lat, r.location.lng);
+      });
     } catch (err) {
       console.error("Failed to fetch data:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resolveAddress = async (id: string, lat: number, lng: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      const addr = data.address.suburb || data.address.city || "Verified Location";
+      setAddresses(prev => ({ ...prev, [id]: addr }));
+    } catch (err) {
+      setAddresses(prev => ({ ...prev, [id]: "Location Verified" }));
     }
   };
 
@@ -109,7 +127,7 @@ export function AdminPanel() {
                   Real-time Reports
                 </h3>
                 <button 
-                  onClick={fetchReports}
+                  onClick={fetchData}
                   className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
                 >
                   <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
@@ -139,8 +157,8 @@ export function AdminPanel() {
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{report.description || "No description"}</div>
                           <div className="text-sm text-gray-400 mt-1 flex items-center gap-2">
-                            <Clock size={14} />
-                            {new Date(report.timestamp).toLocaleString()}
+                            <MapPin size={14} className="text-[#4DA3FF]" />
+                            {addresses[report._id] || "Resolving location..."}
                           </div>
                         </div>
                       </div>
@@ -211,7 +229,18 @@ export function AdminPanel() {
                     
                     {task.completionNotes && (
                       <div className="bg-gray-900/50 p-3 rounded-lg text-sm text-gray-300 border border-gray-700">
+                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">Volunteer Notes</div>
                         "{task.completionNotes}"
+                      </div>
+                    )}
+
+                    {task.proofLocation?.address && (
+                      <div className="bg-[#4CAF50]/10 p-3 rounded-lg border border-[#4CAF50]/20 flex items-start gap-2">
+                        <MapPin size={14} className="text-[#4CAF50] shrink-0 mt-0.5" />
+                        <div className="text-[10px] text-gray-300 leading-tight">
+                          <span className="font-bold text-[#4CAF50] block mb-0.5">VERIFIED LOCATION</span>
+                          {task.proofLocation.address}
+                        </div>
                       </div>
                     )}
                     

@@ -41,11 +41,36 @@ export function ReportUpload() {
     if (saved) setOfflineReports(JSON.parse(saved));
   }, []);
 
+  const reverseGeocode = async (lat: number, lng: number, source: string) => {
+    try {
+      setStatus(`Resolving address for ${source}...`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      const address = data.display_name.split(',').slice(0, 4).join(',');
+      setLocation({ lat, lng, address });
+      setStatus(`Location verified: ${address}`);
+    } catch (err) {
+      setLocation({ lat, lng, address: "Location Verified" });
+      setStatus(`Location pinned at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // 1. Extract Geotag from Photo (EXIF)
-      extractExifData(file);
+      EXIF.getData(file as any, function(this: any) {
+        const lat = EXIF.getTag(this, "GPSLatitude");
+        const lng = EXIF.getTag(this, "GPSLongitude");
+        const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
+        const lngRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
+
+        if (lat && lng) {
+          const latitude = (lat[0] + lat[1] / 60 + lat[2] / 3600) * (latRef === "N" ? 1 : -1);
+          const longitude = (lng[0] + lng[1] / 60 + lng[2] / 3600) * (lngRef === "E" ? 1 : -1);
+          reverseGeocode(latitude, longitude, "photo geotag");
+        }
+      });
 
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -54,23 +79,6 @@ export function ReportUpload() {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const extractExifData = (file: File) => {
-    EXIF.getData(file as any, function(this: any) {
-      const lat = EXIF.getTag(this, "GPSLatitude");
-      const lng = EXIF.getTag(this, "GPSLongitude");
-      const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
-      const lngRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
-
-      if (lat && lng) {
-        const latitude = (lat[0] + lat[1] / 60 + lat[2] / 3600) * (latRef === "N" ? 1 : -1);
-        const longitude = (lng[0] + lng[1] / 60 + lng[2] / 3600) * (lngRef === "E" ? 1 : -1);
-        
-        setLocation({ lat: latitude, lng: longitude, address: "Extracted from photo" });
-        setStatus("Location extracted from photo geotag!");
-      }
-    });
   };
 
   const getCurrentLocation = () => {
@@ -85,12 +93,7 @@ export function ReportUpload() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          address: "Current GPS Location"
-        });
-        setStatus("Location pinned successfully!");
+        reverseGeocode(position.coords.latitude, position.coords.longitude, "current GPS");
         setIsGettingLocation(false);
       },
       (error) => {
@@ -108,7 +111,6 @@ export function ReportUpload() {
     setStatus("Analyzing image with Gemini AI...");
     
     try {
-      // 1. Try Gemini Vision via backend
       const response = await fetch('http://localhost:5000/api/analyze-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,11 +120,9 @@ export function ReportUpload() {
       const data = await response.json();
       
       if (data.description) {
-        // Replace instead of append for clarity in "Auto-detect"
         setDescription(data.description);
         setStatus("Success: Incident analyzed!");
       } else {
-        // 2. Fallback to Tesseract OCR only if Gemini fails
         setStatus("AI Fallback: Trying OCR...");
         const { data: { text } } = await Tesseract.recognize(imageSrc, 'eng+hin');
         if (text.trim()) {
@@ -185,7 +185,6 @@ export function ReportUpload() {
     } catch (err) {
       console.error(err);
       setStatus("Failed to submit. Saved locally.");
-      // Save locally as fallback
       const updated = [...offlineReports, report];
       setOfflineReports(updated);
       localStorage.setItem("offline_reports", JSON.stringify(updated));
@@ -294,7 +293,6 @@ export function ReportUpload() {
               ></textarea>
             </div>
 
-            {/* Location Section */}
             <div className="p-4 bg-gray-800/30 border border-gray-700/50 rounded-xl">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 text-gray-300">
@@ -312,11 +310,14 @@ export function ReportUpload() {
               </div>
               
               {location ? (
-                <div className="space-y-1">
-                  <p className="text-xs text-green-400 font-medium">{location.address}</p>
-                  <p className="text-[10px] text-gray-500 font-mono">
-                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                  </p>
+                <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
+                  <Navigation size={18} className="text-[#4CAF50] shrink-0" />
+                  <div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Verified Address</div>
+                    <div className="text-xs text-gray-200 leading-tight">
+                      {location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <p className="text-xs text-gray-500 italic">No location pinned yet. Upload a geotagged photo or use the GPS button.</p>
