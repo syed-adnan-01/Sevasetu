@@ -16,7 +16,7 @@ export function Login() {
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/");
+      navigate("/app/dashboard");
     } catch(err) {
       console.error(err);
       alert("Invalid credentials. Please try again.");

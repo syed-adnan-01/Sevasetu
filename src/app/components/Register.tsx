@@ -19,7 +19,7 @@ export function Register() {
     try {
       if (signup) {
         await signup(name, email, password);
-        navigate("/");
+        navigate("/app/dashboard");
       }
     } catch (err) {
       console.error(err);

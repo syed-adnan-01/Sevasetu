@@ -10,14 +10,18 @@ export function Layout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { path: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/reports", icon: Camera, label: "New Report" },
-    { path: "/history", icon: FileText, label: "History" },
-    { path: "/tasks", icon: ListTodo, label: "Tasks" },
-    { path: "/volunteers", icon: Users, label: "Volunteers" },
-    { path: "/admin", icon: ShieldCheck, label: "Admin Panel" },
-    { path: "/analytics", icon: BarChart3, label: "Analytics" },
+    { path: "/app/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/app/reports", icon: Camera, label: "New Report" },
+    { path: "/app/history", icon: FileText, label: "History" },
+    { path: "/app/tasks", icon: ListTodo, label: "Tasks" },
+    { path: "/app/volunteers", icon: Users, label: "Volunteers" },
+    { path: "/app/admin", icon: ShieldCheck, label: "Admin Panel", roles: ["admin"] },
+    { path: "/app/analytics", icon: BarChart3, label: "Analytics" },
   ];
+
+  const filteredNavItems = navItems.filter(item => 
+    !item.roles || (user && item.roles.includes(user.role))
+  );
 
   const NavContent = () => (
     <>
@@ -34,7 +38,7 @@ export function Layout() {
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
 
@@ -103,7 +107,7 @@ export function Layout() {
               <Menu size={24} />
             </button>
             <h2 className="text-xl font-semibold text-gray-100">
-              {navItems.find((item) => item.path === location.pathname)?.label || "Dashboard"}
+              {filteredNavItems.find((item) => item.path === location.pathname)?.label || "Dashboard"}
             </h2>
           </div>
 
@@ -139,7 +143,7 @@ export function Layout() {
                     <DropdownMenuSeparator className="bg-gray-800" />
                     <DropdownMenuItem 
                       className="focus:bg-red-500/10 focus:text-red-400 text-red-500 cursor-pointer py-2"
-                      onClick={() => { logout(); navigate("/login"); }}
+                      onClick={() => { logout(); navigate("/"); }}
                     >
                       <User className="mr-2 h-4 w-4 opacity-0" />
                       <span>Logout</span>
