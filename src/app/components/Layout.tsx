@@ -15,7 +15,8 @@ export function Layout() {
     { path: "/history", icon: FileText, label: "History" },
     { path: "/tasks", icon: ListTodo, label: "Tasks" },
     { path: "/volunteers", icon: Users, label: "Volunteers" },
-    { path: "/admin", icon: BarChart3, label: "Analytics" },
+    { path: "/admin", icon: ListTodo, label: "Admin Panel" },
+    { path: "/analytics", icon: BarChart3, label: "Analytics" },
   ];
 
   const NavContent = () => (

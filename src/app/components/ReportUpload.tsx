@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, Mic, Send, Sparkles, X, Loader2, Save } from "lucide-react";
+import { Camera, Mic, Send, Sparkles, X, Loader2, Save, MapPin, Navigation } from "lucide-react";
 import Tesseract from "tesseract.js";
+import EXIF from "exif-js";
 
 export function ReportUpload() {
   const [preview, setPreview] = useState<string | null>(null);
@@ -9,6 +10,8 @@ export function ReportUpload() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [status, setStatus] = useState("");
   const [offlineReports, setOfflineReports] = useState<any[]>([]);
+  const [location, setLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   
   const recognitionRef = useRef<any>(null);
 
@@ -41,6 +44,9 @@ export function ReportUpload() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // 1. Extract Geotag from Photo (EXIF)
+      extractExifData(file);
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
@@ -48,6 +54,52 @@ export function ReportUpload() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const extractExifData = (file: File) => {
+    EXIF.getData(file as any, function(this: any) {
+      const lat = EXIF.getTag(this, "GPSLatitude");
+      const lng = EXIF.getTag(this, "GPSLongitude");
+      const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
+      const lngRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
+
+      if (lat && lng) {
+        const latitude = (lat[0] + lat[1] / 60 + lat[2] / 3600) * (latRef === "N" ? 1 : -1);
+        const longitude = (lng[0] + lng[1] / 60 + lng[2] / 3600) * (lngRef === "E" ? 1 : -1);
+        
+        setLocation({ lat: latitude, lng: longitude, address: "Extracted from photo" });
+        setStatus("Location extracted from photo geotag!");
+      }
+    });
+  };
+
+  const getCurrentLocation = () => {
+    setIsGettingLocation(true);
+    setStatus("Fetching GPS coordinates...");
+    
+    if (!navigator.geolocation) {
+      setStatus("Geolocation not supported by your browser");
+      setIsGettingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          address: "Current GPS Location"
+        });
+        setStatus("Location pinned successfully!");
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        console.error(error);
+        setStatus("Could not get location. Please enable GPS.");
+        setIsGettingLocation(false);
+      },
+      { enableHighAccuracy: true }
+    );
   };
 
   const processImage = async (imageSrc: string) => {
@@ -103,7 +155,7 @@ export function ReportUpload() {
       image: preview,
       timestamp: new Date().toISOString(),
       status: "pending",
-      location: { lat: 0, lng: 0 } // Placeholder for future GPS
+      location: location || { lat: 0, lng: 0 }
     };
 
     if (!navigator.onLine) {
@@ -242,6 +294,35 @@ export function ReportUpload() {
               ></textarea>
             </div>
 
+            {/* Location Section */}
+            <div className="p-4 bg-gray-800/30 border border-gray-700/50 rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-gray-300">
+                  <MapPin size={18} className="text-[#4DA3FF]" />
+                  <span className="text-sm font-medium">Issue Location</span>
+                </div>
+                <button
+                  onClick={getCurrentLocation}
+                  disabled={isGettingLocation}
+                  className="flex items-center gap-1 text-xs px-3 py-1.5 bg-[#4DA3FF]/10 text-[#4DA3FF] border border-[#4DA3FF]/30 rounded-lg hover:bg-[#4DA3FF]/20 transition-all"
+                >
+                  {isGettingLocation ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
+                  Pin Current Location
+                </button>
+              </div>
+              
+              {location ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-green-400 font-medium">{location.address}</p>
+                  <p className="text-[10px] text-gray-500 font-mono">
+                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 italic">No location pinned yet. Upload a geotagged photo or use the GPS button.</p>
+              )}
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={toggleRecording}
@@ -280,9 +361,9 @@ export function ReportUpload() {
           <h3 className="font-semibold mb-3 text-[#4DA3FF]">Intelligent Collection</h3>
           <ul className="space-y-2 text-sm text-gray-400">
             <li>• Photo OCR detects text in <b>English & Hindi</b></li>
-            <li>• Voice transcription works in real-time</li>
+            <li>• <b>Auto-Geotag:</b> Pulls location from photo metadata</li>
+            <li>• <b>GPS Pinning:</b> Accurate to within a few meters</li>
             <li>• Reports are saved <b>locally</b> if you lose internet</li>
-            <li>• Auto-detect analyzes patterns and keywords</li>
           </ul>
         </div>
       </div>

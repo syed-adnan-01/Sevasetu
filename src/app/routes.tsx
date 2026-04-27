@@ -10,6 +10,7 @@ import { Login } from "./components/Login";
 import { Register } from "./components/Register";
 
 import { ReportsHistory } from "./components/ReportsHistory";
+import { Analytics } from "./components/Analytics";
 
 export const router = createBrowserRouter([
   {
@@ -19,9 +20,10 @@ export const router = createBrowserRouter([
       { index: true, Component: Dashboard },
       { path: "reports", Component: ReportUpload },
       { path: "history", Component: ReportsHistory },
-      { path: "tasks", Component: TasksPage },
+       { path: "tasks", Component: TasksPage },
       { path: "volunteers", Component: VolunteerMatching },
       { path: "admin", Component: AdminPanel },
+      { path: "analytics", Component: Analytics },
       { path: "complete/:taskId", Component: TaskCompletion },
     ],
   },
