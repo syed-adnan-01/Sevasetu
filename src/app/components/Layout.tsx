@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router";
-import { LayoutDashboard, FileText, ListTodo, Users, BarChart3, Bell, User, Menu, X } from "lucide-react";
+import { LayoutDashboard, FileText, ListTodo, Users, BarChart3, Bell, User, Menu, X, Camera } from "lucide-react";
 
 export function Layout() {
   const location = useLocation();
@@ -8,7 +8,8 @@ export function Layout() {
 
   const navItems = [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/reports", icon: FileText, label: "Reports" },
+    { path: "/reports", icon: Camera, label: "New Report" },
+    { path: "/history", icon: FileText, label: "History" },
     { path: "/tasks", icon: ListTodo, label: "Tasks" },
     { path: "/volunteers", icon: Users, label: "Volunteers" },
     { path: "/admin", icon: BarChart3, label: "Analytics" },

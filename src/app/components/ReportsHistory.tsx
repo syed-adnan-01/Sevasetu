@@ -1,0 +1,143 @@
+import { useState, useEffect } from "react";
+import { Clock, MapPin, Loader2, RefreshCw, FileText, Search, Filter, ChevronRight } from "lucide-react";
+
+export function ReportsHistory() {
+  const [reports, setReports] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/reports');
+      const data = await response.json();
+      setReports(data);
+    } catch (err) {
+      console.error("Failed to fetch reports:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredReports = reports.filter(report => {
+    if (filter === "all") return true;
+    if (filter === "critical") return report.urgencyScore > 70;
+    if (filter === "pending") return report.status === "pending";
+    return true;
+  });
+
+  return (
+    <div className="min-h-full bg-[#0B0F14] p-4 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Report History</h1>
+            <p className="text-gray-400">View and manage all submissions from the field</p>
+          </div>
+          <button 
+            onClick={fetchReports}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-xl transition-all"
+          >
+            <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
+            Refresh Data
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="md:col-span-1 space-y-4">
+            <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-4">
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Filter size={16} />
+                Filters
+              </h3>
+              <div className="space-y-1">
+                {["all", "critical", "pending", "completed"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`w-full text-left px-4 py-2 rounded-lg text-sm capitalize transition-all ${
+                      filter === f 
+                        ? "bg-[#4DA3FF]/10 text-[#4DA3FF] border border-[#4DA3FF]/20" 
+                        : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-3">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+                <Loader2 className="animate-spin mb-4 text-[#4DA3FF]" size={48} />
+                <p className="text-lg">Connecting to MongoDB...</p>
+              </div>
+            ) : filteredReports.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 bg-gray-900/30 rounded-3xl border-2 border-dashed border-gray-800">
+                <FileText size={48} className="text-gray-700 mb-4" />
+                <p className="text-gray-500 text-lg">No reports found matching these filters.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {filteredReports.map((report) => (
+                  <div 
+                    key={report._id}
+                    className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 rounded-2xl overflow-hidden hover:border-[#4DA3FF]/50 transition-all duration-300 shadow-xl hover:shadow-[#4DA3FF]/5"
+                  >
+                    <div className="flex flex-col sm:flex-row">
+                      {report.image && (
+                        <div className="sm:w-48 h-48 sm:h-auto shrink-0">
+                          <img 
+                            src={report.image} 
+                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
+                            alt="Evidence" 
+                          />
+                        </div>
+                      )}
+                      <div className="p-6 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold tracking-widest uppercase ${
+                              report.urgencyScore > 70 ? "bg-[#FF4D4D]/20 text-[#FF4D4D]" : "bg-[#4CAF50]/20 text-[#4CAF50]"
+                            }`}>
+                              {report.urgencyScore > 70 ? "Critical" : "Stable"}
+                            </span>
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <Clock size={12} />
+                              {new Date(report.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-gray-100 text-lg font-medium mb-4 line-clamp-3">
+                            {report.description || "No description provided."}
+                          </p>
+                        </div>
+                        
+                        <div className="flex items-center justify-between border-t border-gray-700/50 pt-4 mt-auto">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1 text-gray-400 text-xs">
+                              <MapPin size={14} />
+                              <span>Lat: {report.location?.lat.toFixed(2)}, Lng: {report.location?.lng.toFixed(2)}</span>
+                            </div>
+                          </div>
+                          <button className="flex items-center gap-1 text-[#4DA3FF] text-sm font-semibold hover:gap-2 transition-all">
+                            Details <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

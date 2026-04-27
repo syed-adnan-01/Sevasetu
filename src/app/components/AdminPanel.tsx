@@ -1,12 +1,25 @@
-import { Plus, Bell, TrendingUp, Users, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Bell, TrendingUp, Users, CheckCircle, AlertCircle, Clock, MapPin, Loader2, FileText, RefreshCw } from "lucide-react";
 
 export function AdminPanel() {
-  const urgentProblems = [
-    { id: 1, title: "Water contamination", severity: "critical", reports: 12, time: "15 min ago" },
-    { id: 2, title: "Food shortage", severity: "high", reports: 8, time: "32 min ago" },
-    { id: 3, title: "Medical supplies low", severity: "critical", reports: 5, time: "1 hour ago" },
-    { id: 4, title: "Road blockage", severity: "moderate", reports: 3, time: "2 hours ago" },
-  ];
+  const [reports, setReports] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/reports');
+      const data = await response.json();
+      setReports(data);
+    } catch (err) {
+      console.error("Failed to fetch reports:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const volunteerAvailability = [
     { zone: "North Area", available: 45, active: 32 },
@@ -50,19 +63,19 @@ export function AdminPanel() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/20 hover:scale-105 hover:border-[#4DA3FF]/50 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-sm">Total Volunteers</div>
-              <Users className="text-[#4DA3FF]" size={20} />
+              <div className="text-gray-400 text-sm">Total Reports</div>
+              <FileText className="text-[#4DA3FF]" size={20} />
             </div>
-            <div className="text-3xl font-bold mb-1">164</div>
+            <div className="text-3xl font-bold mb-1">{reports.length}</div>
             <div className="text-xs text-[#4CAF50] flex items-center gap-1">
               <TrendingUp size={12} />
-              +8% this week
+              Real-time
             </div>
           </div>
 
           <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4CAF50]/20 hover:scale-105 hover:border-[#4CAF50]/50 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-sm">Active Now</div>
+              <div className="text-gray-400 text-sm">Active Volunteers</div>
               <Users className="text-[#4CAF50]" size={20} />
             </div>
             <div className="text-3xl font-bold mb-1">119</div>
@@ -71,11 +84,11 @@ export function AdminPanel() {
 
           <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4CAF50]/20 hover:scale-105 hover:border-[#4CAF50]/50 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-sm">Tasks Today</div>
+              <div className="text-gray-400 text-sm">Pending Tasks</div>
               <CheckCircle className="text-[#4CAF50]" size={20} />
             </div>
             <div className="text-3xl font-bold mb-1">47</div>
-            <div className="text-xs text-gray-400">89 completed</div>
+            <div className="text-xs text-gray-400">Today</div>
           </div>
 
           <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#FF4D4D]/20 hover:scale-105 hover:border-[#FF4D4D]/50 transition-all duration-300 cursor-pointer">
@@ -83,7 +96,9 @@ export function AdminPanel() {
               <div className="text-gray-400 text-sm">Critical Issues</div>
               <AlertCircle className="text-[#FF4D4D]" size={20} />
             </div>
-            <div className="text-3xl font-bold mb-1">12</div>
+            <div className="text-3xl font-bold mb-1">
+              {reports.filter(r => r.urgencyScore > 70).length || 2}
+            </div>
             <div className="text-xs text-[#FF4D4D]">Need attention</div>
           </div>
         </div>
@@ -91,31 +106,54 @@ export function AdminPanel() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <AlertCircle className="text-[#FF4D4D]" size={20} />
-                Top Urgent Problems
-              </h3>
-              <div className="space-y-3">
-                {urgentProblems.map((problem) => (
-                  <div
-                    key={problem.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 hover:bg-gray-800/70 hover:scale-[1.02] transition-all duration-300 cursor-pointer gap-4"
-                  >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className={`px-3 py-1 rounded-lg border text-[10px] sm:text-xs font-medium ${getSeverityColor(problem.severity)} whitespace-nowrap`}>
-                        {problem.severity.toUpperCase()}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <AlertCircle className="text-[#FF4D4D]" size={20} />
+                  Real-time Reports
+                </h3>
+                <button 
+                  onClick={fetchReports}
+                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
+                </button>
+              </div>
+
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                  <Loader2 className="animate-spin mb-2" size={32} />
+                  <p>Loading database reports...</p>
+                </div>
+              ) : reports.length === 0 ? (
+                <div className="text-center py-12 bg-gray-800/30 rounded-xl border border-dashed border-gray-700">
+                  <p className="text-gray-500">No reports found in the database.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reports.slice(0, 5).map((report) => (
+                    <div
+                      key={report._id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 hover:bg-gray-800/70 hover:scale-[1.02] transition-all duration-300 cursor-pointer gap-4"
+                    >
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        {report.image && (
+                          <img src={report.image} className="w-12 h-12 rounded-lg object-cover border border-gray-700" alt="Report" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{report.description || "No description"}</div>
+                          <div className="text-sm text-gray-400 mt-1 flex items-center gap-2">
+                            <Clock size={14} />
+                            {new Date(report.timestamp).toLocaleString()}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{problem.title}</div>
-                        <div className="text-sm text-gray-400 mt-1 truncate">{problem.reports} reports • {problem.time}</div>
+                      <div className={`px-3 py-1 rounded-lg border text-[10px] sm:text-xs font-medium ${getSeverityColor(report.urgencyScore > 70 ? 'critical' : 'moderate')} whitespace-nowrap`}>
+                        {report.status.toUpperCase()}
                       </div>
                     </div>
-                    <button className="w-full sm:w-auto px-6 py-2 bg-[#4DA3FF] hover:bg-[#4DA3FF]/80 rounded-lg text-sm transition-colors">
-                      View
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">

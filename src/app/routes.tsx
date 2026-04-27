@@ -7,6 +7,8 @@ import { VolunteerMatching } from "./components/VolunteerMatching";
 import { AdminPanel } from "./components/AdminPanel";
 import { TaskCompletion } from "./components/TaskCompletion";
 
+import { ReportsHistory } from "./components/ReportsHistory";
+
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -14,6 +16,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: Dashboard },
       { path: "reports", Component: ReportUpload },
+      { path: "history", Component: ReportsHistory },
       { path: "tasks", Component: TaskList },
       { path: "volunteers", Component: VolunteerMatching },
       { path: "admin", Component: AdminPanel },
