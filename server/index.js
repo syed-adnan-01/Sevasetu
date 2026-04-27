@@ -44,6 +44,23 @@ const reportSchema = new mongoose.Schema({
 
 const Report = mongoose.model('Report', reportSchema);
 
+// Task Schema
+const taskSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: String,
+  status: { type: String, default: 'open' }, // 'open', 'assigned', 'completed'
+  reportId: { type: mongoose.Schema.Types.ObjectId, ref: 'Report' },
+  urgencyScore: { type: Number, default: 0 },
+  requiredSkills: [String],
+  location: {
+    lat: Number,
+    lng: Number
+  },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Task = mongoose.model('Task', taskSchema);
+
 // Urgency Engine Logic
 const calculateUrgency = async (description, location) => {
   let score = 10; // Base score for any report
@@ -66,8 +83,6 @@ const calculateUrgency = async (description, location) => {
   // If many similar problems are reported in the last 24 hours
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   
-  // Currently checking all recent pending reports. 
-  // In a full map integration, we would filter by `location` radius here.
   const similarReportsCount = await Report.countDocuments({
     status: 'pending',
     timestamp: { $gte: oneDayAgo }
@@ -77,6 +92,74 @@ const calculateUrgency = async (description, location) => {
   score += Math.min(similarReportsCount * 5, 30);
 
   return Math.min(score, 100); // Cap at 100
+};
+
+// Task Template Engine
+const generateTasksForReport = async (report) => {
+  const descLower = report.description ? report.description.toLowerCase() : "";
+  const tasksToCreate = [];
+
+  // 1. Flood Scenario
+  if (descLower.includes('flood') || descLower.includes('water')) {
+    tasksToCreate.push({
+      title: 'Distribute Clean Water & Rations',
+      description: 'Deliver emergency water supplies and food to the affected area.',
+      requiredSkills: ['Logistics', 'Driving'],
+    });
+    tasksToCreate.push({
+      title: 'Water Pumping & Drainage',
+      description: 'Assist in pumping out stagnant water from residential buildings.',
+      requiredSkills: ['Engineering', 'Heavy Machinery'],
+    });
+  }
+
+  // 2. Fire Scenario
+  if (descLower.includes('fire') || descLower.includes('smoke') || descLower.includes('burn')) {
+    tasksToCreate.push({
+      title: 'Distribute Masks & Inhalers',
+      description: 'Provide respiratory protection and medical supplies for smoke inhalation.',
+      requiredSkills: ['Medical', 'Logistics'],
+    });
+    tasksToCreate.push({
+      title: 'Evacuation Assistance',
+      description: 'Help evacuate residents from buildings near the fire zone.',
+      requiredSkills: ['Search & Rescue', 'First Aid'],
+    });
+  }
+
+  // 3. Medical Emergency Scenario
+  if (descLower.includes('medical') || descLower.includes('injured') || descLower.includes('bleeding')) {
+    tasksToCreate.push({
+      title: 'Emergency Triage & First Aid',
+      description: 'Provide immediate medical attention to injured individuals on site.',
+      requiredSkills: ['Medical', 'First Aid', 'Doctor', 'Nurse'],
+    });
+    tasksToCreate.push({
+      title: 'Ambulance Transport Coordination',
+      description: 'Coordinate transport of critically injured to the nearest hospital.',
+      requiredSkills: ['Logistics', 'Communication'],
+    });
+  }
+
+  // Fallback / General Scenario if no specific keywords matched but urgency is high
+  if (tasksToCreate.length === 0) {
+    tasksToCreate.push({
+      title: 'On-site Assessment & Recon',
+      description: 'Deploy to the location to assess the situation and report back needs.',
+      requiredSkills: ['Communication', 'Observation'],
+    });
+  }
+
+  // Save generated tasks
+  for (const t of tasksToCreate) {
+    const newTask = new Task({
+      ...t,
+      reportId: report._id,
+      urgencyScore: report.urgencyScore,
+      location: report.location
+    });
+    await newTask.save();
+  }
 };
 
 // API Endpoints
@@ -124,6 +207,12 @@ app.post('/api/reports', async (req, res) => {
     
     const newReport = new Report(reportData);
     await newReport.save();
+
+    // Trigger Task Generation if Urgency is high
+    if (newReport.urgencyScore >= 40) {
+      await generateTasksForReport(newReport);
+    }
+
     res.status(201).json(newReport);
   } catch (err) {
     console.error('Save error:', err);
@@ -135,6 +224,15 @@ app.get('/api/reports', async (req, res) => {
   try {
     const reports = await Report.find().sort({ timestamp: -1 });
     res.json(reports);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/tasks', async (req, res) => {
+  try {
+    const tasks = await Task.find().sort({ createdAt: -1 }).populate('reportId');
+    res.json(tasks);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
