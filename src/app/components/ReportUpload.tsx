@@ -53,65 +53,36 @@ export function ReportUpload() {
   const processImage = async (imageSrc: string) => {
     if (!imageSrc) return;
     setIsProcessing(true);
-    setStatus("Enhancing image for AI...");
+    setStatus("Analyzing image with Gemini AI...");
     
     try {
-      // Create an image object to get dimensions and draw on canvas
-      const img = new Image();
-      img.src = imageSrc;
-      await new Promise((resolve) => (img.onload = resolve));
-
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Could not get canvas context");
-
-      // Set canvas to original image size for full resolution processing
-      canvas.width = img.width;
-      canvas.height = img.height;
-
-      // Draw original image
-      ctx.drawImage(img, 0, 0);
-
-      // Preprocessing: Convert to Grayscale and increase Contrast for Tesseract
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        // Grayscale conversion
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-        
-        // Simple contrast enhancement
-        const contrast = 1.2; // Increase contrast
-        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-        const newValue = factor * (avg - 128) + 128;
-        
-        data[i] = newValue;     // Red
-        data[i + 1] = newValue; // Green
-        data[i + 2] = newValue; // Blue
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      // Use a higher quality JPEG for OCR processing
-      const processedImage = canvas.toDataURL('image/jpeg', 0.95);
-      
-      setStatus("Analyzing text (Hindi + English)...");
-      const { data: { text } } = await Tesseract.recognize(processedImage, 'eng+hin', {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setStatus(`AI Reading: ${Math.round(m.progress * 100)}%`);
-          }
-        }
+      // 1. Try Gemini Vision via backend
+      const response = await fetch('http://localhost:5000/api/analyze-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageSrc })
       });
-
-      if (text.trim()) {
-        const cleanedText = text.trim().replace(/\n+/g, ' ');
-        setDescription(prev => prev + (prev ? "\n\n" : "") + "[AI Detection]: " + cleanedText);
-        setStatus("Success: Text detected!");
+      
+      const data = await response.json();
+      
+      if (data.description) {
+        // Replace instead of append for clarity in "Auto-detect"
+        setDescription(data.description);
+        setStatus("Success: Incident analyzed!");
       } else {
-        setStatus("AI finished: No text found.");
+        // 2. Fallback to Tesseract OCR only if Gemini fails
+        setStatus("AI Fallback: Trying OCR...");
+        const { data: { text } } = await Tesseract.recognize(imageSrc, 'eng+hin');
+        if (text.trim()) {
+          setDescription(text.trim());
+          setStatus("Success: Text detected!");
+        } else {
+          setStatus("AI finished: No clear data found.");
+        }
       }
     } catch (err) {
       console.error(err);
-      setStatus("AI detection error");
+      setStatus("AI analysis error");
     } finally {
       setIsProcessing(false);
     }
