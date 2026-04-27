@@ -6,6 +6,8 @@ import { TaskList } from "./components/TaskList";
 import { VolunteerMatching } from "./components/VolunteerMatching";
 import { AdminPanel } from "./components/AdminPanel";
 import { TaskCompletion } from "./components/TaskCompletion";
+import { Login } from "./components/Login";
+import { Register } from "./components/Register";
 
 import { ReportsHistory } from "./components/ReportsHistory";
 
@@ -23,4 +25,12 @@ export const router = createBrowserRouter([
       { path: "complete/:taskId", Component: TaskCompletion },
     ],
   },
+  {
+    path: "/login",
+    Component: Login,
+  },
+  {
+    path: "/signup",
+    Component: Register,
+  }
 ]);

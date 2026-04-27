@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { LayoutDashboard, FileText, ListTodo, Users, BarChart3, Bell, User, Menu, X, Camera } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { useAuth } from "../context/AuthContext";
 
 export function Layout() {
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
@@ -54,12 +57,14 @@ export function Layout() {
 
       <div className="p-4 border-t border-gray-800">
         <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/50">
-          <p className="text-xs text-gray-500 mb-1">Signed in as</p>
-          <p className="text-sm font-medium">Administrator</p>
+          <p className="text-xs text-gray-500 mb-1">{user ? "Signed in as" : "Not signed in"}</p>
+          <p className="text-sm font-medium">{user ? user.name : "Guest"}</p>
         </div>
       </div>
     </>
   );
+
+  const navigate = useNavigate();
 
   return (
     <div className="flex h-screen bg-[#0B0F14] text-white overflow-hidden">
@@ -106,11 +111,50 @@ export function Layout() {
               <Bell size={20} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF4D4D] rounded-full border-2 border-[#111827]"></span>
             </button>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#4DA3FF] to-[#4CAF50] p-[2px]">
-              <div className="w-full h-full rounded-full bg-[#111827] flex items-center justify-center">
-                <User size={20} className="text-[#4DA3FF]" />
-              </div>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="outline-none focus:ring-2 focus:ring-[#4DA3FF] rounded-full transition-shadow">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#4DA3FF] to-[#4CAF50] p-[2px] cursor-pointer hover:opacity-90">
+                  <div className="w-full h-full rounded-full bg-[#111827] flex items-center justify-center">
+                    <User size={20} className="text-[#4DA3FF]" />
+                  </div>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-[#111827] border-gray-800 text-gray-200 mt-2">
+                <DropdownMenuLabel className="font-semibold text-gray-100">
+                  {user ? "My Account" : "Welcome visitor"}
+                </DropdownMenuLabel>
+                {user && (
+                  <DropdownMenuLabel className="text-xs text-gray-400 font-normal pt-0 break-all">
+                    {user.email}
+                  </DropdownMenuLabel>
+                )}
+                <DropdownMenuSeparator className="bg-gray-800" />
+                {user ? (
+                  <>
+                    <DropdownMenuItem className="focus:bg-gray-800 focus:text-white cursor-pointer py-2">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>{user.name}'s Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-gray-800" />
+                    <DropdownMenuItem 
+                      className="focus:bg-red-500/10 focus:text-red-400 text-red-500 cursor-pointer py-2"
+                      onClick={() => { logout(); navigate("/login"); }}
+                    >
+                      <User className="mr-2 h-4 w-4 opacity-0" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem 
+                    className="focus:bg-gray-800 focus:text-white cursor-pointer py-2"
+                    onClick={() => navigate("/login")}
+                  >
+                    <User className="mr-2 h-4 w-4 opacity-0" />
+                    <span>Login</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
