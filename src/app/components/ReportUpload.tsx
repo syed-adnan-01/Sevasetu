@@ -22,10 +22,10 @@ export function ReportUpload() {
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-6">
+    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 lg:p-6">
       <div className="max-w-2xl mx-auto">
-        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-8 border border-gray-700/50 shadow-2xl hover:shadow-[#4DA3FF]/10 transition-all duration-300">
-          <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] bg-clip-text text-transparent">
+        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 lg:p-8 border border-gray-700/50 shadow-2xl hover:shadow-[#4DA3FF]/10 transition-all duration-300">
+          <h2 className="text-xl lg:text-2xl font-bold mb-6 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] bg-clip-text text-transparent">
             Report an Issue
           </h2>
 
@@ -35,7 +35,7 @@ export function ReportUpload() {
                 <img
                   src={preview}
                   alt="Preview"
-                  className="w-full h-64 object-cover rounded-xl border border-gray-700"
+                  className="w-full h-48 lg:h-64 object-cover rounded-xl border border-gray-700"
                 />
                 <button
                   onClick={() => setPreview(null)}
@@ -52,10 +52,10 @@ export function ReportUpload() {
                   onChange={handleImageUpload}
                   className="hidden"
                 />
-                <div className="border-2 border-dashed border-gray-600 rounded-xl p-12 text-center cursor-pointer hover:border-[#4DA3FF] hover:bg-gray-800/30 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-[#4DA3FF]/10">
-                  <Camera size={48} className="mx-auto mb-4 text-gray-500" />
-                  <p className="text-gray-400">Click to upload a photo</p>
-                  <p className="text-sm text-gray-500 mt-2">or drag and drop</p>
+                <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 lg:p-12 text-center cursor-pointer hover:border-[#4DA3FF] hover:bg-gray-800/30 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-[#4DA3FF]/10">
+                  <Camera size={40} className="mx-auto mb-4 text-gray-500" />
+                  <p className="text-gray-400 text-sm lg:text-base">Click to upload a photo</p>
+                  <p className="text-xs text-gray-500 mt-2">or drag and drop</p>
                 </div>
               </label>
             )}
@@ -67,26 +67,26 @@ export function ReportUpload() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe the issue..."
                 rows={4}
-                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:border-[#4DA3FF] focus:ring-2 focus:ring-[#4DA3FF]/20 transition-all text-white placeholder-gray-500"
+                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:border-[#4DA3FF] focus:ring-2 focus:ring-[#4DA3FF]/20 transition-all text-white placeholder-gray-500 text-sm lg:text-base"
               ></textarea>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => setIsRecording(!isRecording)}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 lg:py-4 rounded-xl font-medium transition-all duration-200 ${
                   isRecording
                     ? "bg-[#FF4D4D] hover:bg-[#FF4D4D]/80 shadow-lg shadow-[#FF4D4D]/30"
                     : "bg-gray-800 hover:bg-gray-700 border border-gray-700"
-                }`}
+                } text-sm lg:text-base`}
               >
                 <Mic size={20} />
                 {isRecording ? "Recording..." : "Record Voice"}
               </button>
 
-              <button className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-medium transition-all duration-200 shadow-lg shadow-purple-500/30">
+              <button className="flex-1 flex items-center justify-center gap-2 px-6 py-3 lg:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-medium transition-all duration-200 shadow-lg shadow-purple-500/30 text-sm lg:text-base">
                 <Sparkles size={20} />
-                Auto-detect Problem
+                Auto-detect
               </button>
             </div>
 

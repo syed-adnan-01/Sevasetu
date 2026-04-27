@@ -48,9 +48,9 @@ export function VolunteerMatching() {
   ];
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-6">
+    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 lg:p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           {yourStats.map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -70,19 +70,19 @@ export function VolunteerMatching() {
 
         <div className="backdrop-blur-xl bg-gradient-to-br from-purple-900/20 to-pink-900/20 rounded-2xl p-4 border border-purple-500/30 mb-6 shadow-lg shadow-purple-500/10 hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.01] transition-all duration-300">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg">
+            <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex-shrink-0">
               <Sparkles size={20} />
             </div>
             <div>
-              <h3 className="font-semibold mb-1">Smart Recommendations</h3>
-              <p className="text-sm text-gray-300">
+              <h3 className="font-semibold mb-1 text-sm lg:text-base">Smart Recommendations</h3>
+              <p className="text-xs lg:text-sm text-gray-300">
                 We've found tasks that match your skills, location, and availability. High-impact opportunities are highlighted.
               </p>
             </div>
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold mb-4">Recommended For You</h2>
+        <h2 className="text-xl lg:text-2xl font-bold mb-4">Recommended For You</h2>
 
         <div className="space-y-4">
           {recommendedTasks.map((task) => {
@@ -91,23 +91,23 @@ export function VolunteerMatching() {
             return (
               <div
                 key={task.id}
-                className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 hover:border-[#4DA3FF] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/30 hover:scale-[1.01] hover:-translate-y-1"
+                className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 hover:border-[#4DA3FF] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/30 hover:scale-[1.01] hover:-translate-y-1"
               >
-                <div className="flex items-start gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#4DA3FF] to-[#4CAF50] flex items-center justify-center">
+                <div className="flex flex-col md:flex-row items-start gap-4 lg:gap-6">
+                  <div className="flex-shrink-0 mx-auto md:mx-0">
+                    <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-gradient-to-br from-[#4DA3FF] to-[#4CAF50] flex items-center justify-center">
                       <div className="text-center">
-                        <div className="text-2xl font-bold">{task.matchScore}</div>
-                        <div className="text-xs opacity-80">Match</div>
+                        <div className="text-xl lg:text-2xl font-bold">{task.matchScore}</div>
+                        <div className="text-[10px] lg:text-xs opacity-80">Match</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex-1">
+                  <div className="flex-1 w-full">
                     <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-xl font-semibold mb-2">{task.title}</h3>
-                        <p className="text-gray-400 mb-3">{task.description}</p>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-lg lg:text-xl font-semibold mb-2 truncate">{task.title}</h3>
+                        <p className="text-sm lg:text-base text-gray-400 mb-3 line-clamp-2">{task.description}</p>
                       </div>
                     </div>
 
@@ -115,23 +115,23 @@ export function VolunteerMatching() {
                       {task.matchReasons.map((reason, index) => (
                         <div
                           key={index}
-                          className="px-3 py-1 bg-[#4CAF50]/10 border border-[#4CAF50] text-[#4CAF50] rounded-lg text-xs font-medium"
+                          className="px-2 lg:px-3 py-1 bg-[#4CAF50]/10 border border-[#4CAF50] text-[#4CAF50] rounded-lg text-[10px] lg:text-xs font-medium"
                         >
                           ✓ {reason}
                         </div>
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 mb-4">
+                      <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
                         <Clock size={16} />
                         <span>{task.timeRequired}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
                         <MapPin size={16} />
-                        <span>{task.distance} away</span>
+                        <span className="truncate">{task.distance} away</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
                         <Users size={16} />
                         <span>
                           {task.volunteersJoined} / {task.volunteersNeeded} joined
@@ -141,7 +141,7 @@ export function VolunteerMatching() {
                         {task.skills.map((skill, index) => (
                           <span
                             key={index}
-                            className="px-2 py-1 bg-gray-800 text-gray-300 rounded text-xs"
+                            className="px-2 py-1 bg-gray-800 text-gray-300 rounded text-[10px] lg:text-xs"
                           >
                             {skill}
                           </span>
@@ -149,8 +149,8 @@ export function VolunteerMatching() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div className="w-full flex-1">
                         <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] transition-all duration-300"
@@ -160,7 +160,7 @@ export function VolunteerMatching() {
                       </div>
                       <Link
                         to={`/complete/${task.id}`}
-                        className="px-8 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:from-[#4DA3FF]/80 hover:to-[#4CAF50]/80 rounded-xl font-medium transition-all duration-200 shadow-lg shadow-[#4DA3FF]/20"
+                        className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:from-[#4DA3FF]/80 hover:to-[#4CAF50]/80 rounded-xl font-medium transition-all duration-200 shadow-lg shadow-[#4DA3FF]/20 text-center"
                       >
                         Accept Task
                       </Link>

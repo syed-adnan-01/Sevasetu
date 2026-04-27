@@ -45,19 +45,19 @@ export function TaskCompletion() {
   }
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-6">
+    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 lg:p-6">
       <div className="max-w-2xl mx-auto">
         <button
           onClick={() => navigate("/tasks")}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors text-sm"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
           Back to Tasks
         </button>
 
-        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-8 border border-gray-700/50 shadow-2xl hover:shadow-[#4DA3FF]/10 transition-all duration-300">
-          <h2 className="text-2xl font-bold mb-2">Complete Task #{taskId}</h2>
-          <p className="text-gray-400 mb-6">Upload proof of completion and add any notes</p>
+        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 lg:p-8 border border-gray-700/50 shadow-2xl hover:shadow-[#4DA3FF]/10 transition-all duration-300">
+          <h2 className="text-xl lg:text-2xl font-bold mb-2">Complete Task #{taskId}</h2>
+          <p className="text-sm lg:text-base text-gray-400 mb-6">Upload proof of completion and add any notes</p>
 
           <div className="space-y-6">
             <div>
@@ -67,7 +67,7 @@ export function TaskCompletion() {
                   <img
                     src={preview}
                     alt="Proof"
-                    className="w-full h-64 object-cover rounded-xl border border-gray-700"
+                    className="w-full h-48 lg:h-64 object-cover rounded-xl border border-gray-700"
                   />
                   <button
                     onClick={() => setPreview(null)}
@@ -84,10 +84,10 @@ export function TaskCompletion() {
                     onChange={handleImageUpload}
                     className="hidden"
                   />
-                  <div className="border-2 border-dashed border-gray-600 rounded-xl p-12 text-center cursor-pointer hover:border-[#4DA3FF] hover:bg-gray-800/30 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-[#4DA3FF]/10">
-                    <Camera size={48} className="mx-auto mb-4 text-gray-500" />
-                    <p className="text-gray-400">Upload proof image</p>
-                    <p className="text-sm text-gray-500 mt-2">Click or drag to upload</p>
+                  <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 lg:p-12 text-center cursor-pointer hover:border-[#4DA3FF] hover:bg-gray-800/30 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-[#4DA3FF]/10">
+                    <Camera size={40} className="mx-auto mb-4 text-gray-500" />
+                    <p className="text-gray-400 text-sm">Upload proof image</p>
+                    <p className="text-xs text-gray-500 mt-2">Click or drag to upload</p>
                   </div>
                 </label>
               )}
@@ -100,25 +100,25 @@ export function TaskCompletion() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any important details about task completion..."
                 rows={5}
-                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:border-[#4DA3FF] focus:ring-2 focus:ring-[#4DA3FF]/20 transition-all text-white placeholder-gray-500"
+                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:border-[#4DA3FF] focus:ring-2 focus:ring-[#4DA3FF]/20 transition-all text-white placeholder-gray-500 text-sm lg:text-base"
               ></textarea>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => navigate("/tasks")}
-                className="flex-1 px-6 py-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl font-medium transition-all duration-200"
+                className="flex-1 px-6 py-3 lg:py-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl font-medium transition-all duration-200 text-sm lg:text-base"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={!preview}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 lg:py-4 rounded-xl font-medium transition-all duration-200 ${
                   preview
                     ? "bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:from-[#4DA3FF]/80 hover:to-[#4CAF50]/80 shadow-lg shadow-[#4DA3FF]/30"
                     : "bg-gray-800 text-gray-500 cursor-not-allowed"
-                }`}
+                } text-sm lg:text-base`}
               >
                 <CheckCircle size={20} />
                 Submit Completion

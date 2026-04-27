@@ -45,26 +45,9 @@ export function AdminPanel() {
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-6">
+    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 lg:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Admin Dashboard</h2>
-            <p className="text-gray-400">Monitor and manage volunteer operations</p>
-          </div>
-          <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#FF4D4D] to-[#FFC857] hover:from-[#FF4D4D]/80 hover:to-[#FFC857]/80 rounded-xl font-medium transition-all duration-200 shadow-lg shadow-[#FF4D4D]/20">
-              <Bell size={20} />
-              Send Alert
-            </button>
-            <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:from-[#4DA3FF]/80 hover:to-[#4CAF50]/80 rounded-xl font-medium transition-all duration-200 shadow-lg shadow-[#4DA3FF]/20">
-              <Plus size={20} />
-              Create Task
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/20 hover:scale-105 hover:border-[#4DA3FF]/50 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-between mb-2">
               <div className="text-gray-400 text-sm">Total Volunteers</div>
@@ -105,9 +88,9 @@ export function AdminPanel() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 space-y-6">
-            <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <AlertCircle className="text-[#FF4D4D]" size={20} />
                 Top Urgent Problems
@@ -116,18 +99,18 @@ export function AdminPanel() {
                 {urgentProblems.map((problem) => (
                   <div
                     key={problem.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 hover:bg-gray-800/70 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 hover:bg-gray-800/70 hover:scale-[1.02] transition-all duration-300 cursor-pointer gap-4"
                   >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className={`px-3 py-1 rounded-lg border text-xs font-medium ${getSeverityColor(problem.severity)}`}>
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className={`px-3 py-1 rounded-lg border text-[10px] sm:text-xs font-medium ${getSeverityColor(problem.severity)} whitespace-nowrap`}>
                         {problem.severity.toUpperCase()}
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{problem.title}</div>
-                        <div className="text-sm text-gray-400 mt-1">{problem.reports} reports • {problem.time}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{problem.title}</div>
+                        <div className="text-sm text-gray-400 mt-1 truncate">{problem.reports} reports • {problem.time}</div>
                       </div>
                     </div>
-                    <button className="px-4 py-2 bg-[#4DA3FF] hover:bg-[#4DA3FF]/80 rounded-lg text-sm transition-colors">
+                    <button className="w-full sm:w-auto px-6 py-2 bg-[#4DA3FF] hover:bg-[#4DA3FF]/80 rounded-lg text-sm transition-colors">
                       View
                     </button>
                   </div>
@@ -135,7 +118,7 @@ export function AdminPanel() {
               </div>
             </div>
 
-            <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
+            <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Users className="text-[#4CAF50]" size={20} />
                 Volunteer Availability by Zone
@@ -145,9 +128,9 @@ export function AdminPanel() {
                   const percentage = (zone.active / zone.available) * 100;
                   return (
                     <div key={index}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-medium">{zone.zone}</div>
-                        <div className="text-sm text-gray-400">
+                      <div className="flex items-center justify-between mb-2 gap-2">
+                        <div className="font-medium truncate">{zone.zone}</div>
+                        <div className="text-sm text-gray-400 whitespace-nowrap">
                           {zone.active} / {zone.available} active
                         </div>
                       </div>
@@ -164,7 +147,7 @@ export function AdminPanel() {
             </div>
           </div>
 
-          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
+          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300 h-fit">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Clock className="text-[#4DA3FF]" size={20} />
               Recent Activity

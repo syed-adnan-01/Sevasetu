@@ -98,18 +98,18 @@ export function TaskList() {
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-6">
+    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 lg:p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Available Tasks</h2>
-            <p className="text-gray-400">Find tasks that match your skills and availability</p>
+            <h2 className="text-xl lg:text-2xl font-bold mb-2">Available Tasks</h2>
+            <p className="text-sm lg:text-base text-gray-400">Find tasks that match your skills and availability</p>
           </div>
           <div className="flex gap-2">
-            <button className="px-4 py-2 bg-gray-800 rounded-xl border border-gray-700 hover:border-[#4DA3FF] transition-colors text-sm">
+            <button className="flex-1 sm:flex-none px-4 py-2 bg-gray-800 rounded-xl border border-gray-700 hover:border-[#4DA3FF] transition-colors text-sm">
               Filter
             </button>
-            <button className="px-4 py-2 bg-gray-800 rounded-xl border border-gray-700 hover:border-[#4DA3FF] transition-colors text-sm">
+            <button className="flex-1 sm:flex-none px-4 py-2 bg-gray-800 rounded-xl border border-gray-700 hover:border-[#4DA3FF] transition-colors text-sm">
               Sort
             </button>
           </div>
@@ -123,30 +123,30 @@ export function TaskList() {
             return (
               <div
                 key={task.id}
-                className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 hover:border-[#4DA3FF]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/20 hover:scale-[1.02] hover:-translate-y-1"
+                className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 hover:border-[#4DA3FF]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/20 hover:scale-[1.02] hover:-translate-y-1"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-2">{task.title}</h3>
-                    <p className="text-sm text-gray-400">{task.description}</p>
+                <div className="flex items-start justify-between mb-4 gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base lg:text-lg font-semibold mb-2 truncate">{task.title}</h3>
+                    <p className="text-xs lg:text-sm text-gray-400 line-clamp-2">{task.description}</p>
                   </div>
-                  <div className={`px-3 py-1 rounded-lg border ${styles.border} ${styles.bg} ${styles.text} text-xs font-medium whitespace-nowrap ml-3`}>
+                  <div className={`px-2 lg:px-3 py-1 rounded-lg border ${styles.border} ${styles.bg} ${styles.text} text-[10px] lg:text-xs font-medium whitespace-nowrap`}>
                     {task.urgency.toUpperCase()}
                   </div>
                 </div>
 
                 <div className="space-y-3 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Clock size={16} />
-                    <span>{task.timeRequired}</span>
+                  <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
+                    <Clock size={16} className="flex-shrink-0" />
+                    <span className="truncate">{task.timeRequired}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <MapPin size={16} />
-                    <span>{task.distance} away • {task.location}</span>
+                  <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
+                    <MapPin size={16} className="flex-shrink-0" />
+                    <span className="truncate">{task.distance} away • {task.location}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Users size={16} />
-                    <span>
+                  <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
+                    <Users size={16} className="flex-shrink-0" />
+                    <span className="truncate">
                       {task.volunteersJoined} / {task.volunteersNeeded} volunteers joined
                     </span>
                   </div>
@@ -163,7 +163,7 @@ export function TaskList() {
 
                 <Link
                   to={`/complete/${task.id}`}
-                  className={`block w-full text-center px-6 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:from-[#4DA3FF]/80 hover:to-[#4CAF50]/80 rounded-xl font-medium transition-all duration-200 shadow-lg ${styles.glow}`}
+                  className={`block w-full text-center px-6 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:from-[#4DA3FF]/80 hover:to-[#4CAF50]/80 rounded-xl font-medium transition-all duration-200 shadow-lg ${styles.glow} text-sm lg:text-base`}
                 >
                   Join Task
                 </Link>
