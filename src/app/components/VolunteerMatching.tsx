@@ -1,176 +1,203 @@
-import { Link } from "react-router";
-import { Sparkles, Clock, MapPin, Users, TrendingUp, Award } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, ShieldCheck, MapPin, Search, CheckCircle2, AlertCircle } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+
+const AVAILABLE_SKILLS = [
+  "Medical", "First Aid", "Doctor", "Nurse", 
+  "Logistics", "Driving", "Engineering", 
+  "Heavy Machinery", "Search & Rescue", 
+  "Communication", "Observation"
+];
 
 export function VolunteerMatching() {
-  const recommendedTasks = [
-    {
-      id: 1,
-      title: "Water quality testing",
-      description: "Test water sources in affected areas for contamination",
-      matchScore: 95,
-      matchReasons: ["Matches your skills", "Only 0.8km away", "Critical priority"],
-      timeRequired: "1-2 hours",
-      distance: "0.8 km",
-      volunteersJoined: 1,
-      volunteersNeeded: 3,
-      skills: ["Laboratory", "Analysis"],
-    },
-    {
-      id: 2,
-      title: "Medical assistance setup",
-      description: "Set up temporary medical station for basic healthcare",
-      matchScore: 88,
-      matchReasons: ["Medical background", "Available now", "High impact"],
-      timeRequired: "4-5 hours",
-      distance: "3.5 km",
-      volunteersJoined: 5,
-      volunteersNeeded: 8,
-      skills: ["Medical", "Organization"],
-    },
-    {
-      id: 3,
-      title: "Supply inventory check",
-      description: "Count and organize emergency supplies in warehouse",
-      matchScore: 82,
-      matchReasons: ["Close proximity", "Previous similar task", "Low time commitment"],
-      timeRequired: "1-2 hours",
-      distance: "1.5 km",
-      volunteersJoined: 3,
-      volunteersNeeded: 4,
-      skills: ["Organization", "Data Entry"],
-    },
-  ];
+  const { user } = useAuth();
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const yourStats = [
-    { label: "Tasks Completed", value: "47", icon: Award },
-    { label: "Hours Contributed", value: "128", icon: Clock },
-    { label: "Impact Score", value: "892", icon: TrendingUp },
-  ];
+  useEffect(() => {
+    if (user) {
+      // In a real app we'd fetch the user's existing skills first.
+      // For demo, we'll just fetch recommendations based on whatever is selected.
+      fetchRecommendations();
+    }
+  }, [user]);
+
+  const toggleSkill = (skill: string) => {
+    setSelectedSkills(prev => 
+      prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
+    );
+  };
+
+  const saveProfileAndSearch = async () => {
+    if (!user) return;
+    setIsUpdating(true);
+    try {
+      // 1. Update Profile
+      await fetch("http://localhost:5000/api/auth/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          skills: selectedSkills,
+          // Simulate a location for the volunteer near New Delhi
+          location: { lat: 28.6139 + (Math.random() - 0.5) * 0.1, lng: 77.2090 + (Math.random() - 0.5) * 0.1 }
+        })
+      });
+
+      // 2. Fetch Recommendations
+      await fetchRecommendations();
+    } catch (err) {
+      console.error("Failed to update profile", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const fetchRecommendations = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/tasks/recommendations?email=${user.email}`);
+      const data = await res.json();
+      setRecommendations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch recommendations", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const acceptTask = async (taskId: string) => {
+    try {
+      await fetch(`http://localhost:5000/api/tasks/${taskId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user?.email })
+      });
+      // Remove from list or refresh
+      fetchRecommendations();
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="p-8 flex items-center justify-center h-full">
+        <div className="text-center bg-gray-800/50 p-8 rounded-2xl border border-gray-700/50">
+          <User className="mx-auto h-16 w-16 text-gray-500 mb-4 opacity-50" />
+          <h2 className="text-xl font-bold mb-2">Authentication Required</h2>
+          <p className="text-gray-400">Please log in or sign up to view volunteer matches.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 lg:p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          {yourStats.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={index}
-                className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4CAF50]/20 hover:scale-105 hover:border-[#4CAF50]/50 transition-all duration-300 cursor-pointer"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-gray-400 text-sm">{stat.label}</div>
-                  <Icon className="text-[#4CAF50]" size={20} />
-                </div>
-                <div className="text-3xl font-bold">{stat.value}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="backdrop-blur-xl bg-gradient-to-br from-purple-900/20 to-pink-900/20 rounded-2xl p-4 border border-purple-500/30 mb-6 shadow-lg shadow-purple-500/10 hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.01] transition-all duration-300">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex-shrink-0">
-              <Sparkles size={20} />
+    <div className="p-6 lg:p-8 flex flex-col lg:flex-row gap-8">
+      {/* Sidebar: Profile & Skills */}
+      <div className="w-full lg:w-80 shrink-0 space-y-6">
+        <div className="bg-gray-800/40 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4DA3FF] to-[#4CAF50] flex items-center justify-center text-xl font-bold">
+              {user.name.charAt(0)}
             </div>
             <div>
-              <h3 className="font-semibold mb-1 text-sm lg:text-base">Smart Recommendations</h3>
-              <p className="text-xs lg:text-sm text-gray-300">
-                We've found tasks that match your skills, location, and availability. High-impact opportunities are highlighted.
-              </p>
+              <h3 className="font-bold text-lg">{user.name}</h3>
+              <p className="text-xs text-gray-400">Volunteer</p>
             </div>
           </div>
-        </div>
-
-        <h2 className="text-xl lg:text-2xl font-bold mb-4">Recommended For You</h2>
-
-        <div className="space-y-4">
-          {recommendedTasks.map((task) => {
-            const progress = (task.volunteersJoined / task.volunteersNeeded) * 100;
-
-            return (
-              <div
-                key={task.id}
-                className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 hover:border-[#4DA3FF] transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/30 hover:scale-[1.01] hover:-translate-y-1"
+          
+          <h4 className="font-medium text-sm text-gray-300 mb-3 uppercase tracking-wider">My Skills</h4>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {AVAILABLE_SKILLS.map(skill => (
+              <button
+                key={skill}
+                onClick={() => toggleSkill(skill)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  selectedSkills.includes(skill)
+                    ? "bg-[#4DA3FF]/20 border-[#4DA3FF] text-[#4DA3FF]"
+                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500"
+                }`}
               >
-                <div className="flex flex-col md:flex-row items-start gap-4 lg:gap-6">
-                  <div className="flex-shrink-0 mx-auto md:mx-0">
-                    <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-gradient-to-br from-[#4DA3FF] to-[#4CAF50] flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-xl lg:text-2xl font-bold">{task.matchScore}</div>
-                        <div className="text-[10px] lg:text-xs opacity-80">Match</div>
-                      </div>
-                    </div>
+                {skill}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={saveProfileAndSearch}
+            disabled={isUpdating}
+            className="w-full py-3 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:opacity-90 rounded-xl font-bold text-sm transition-opacity flex items-center justify-center gap-2"
+          >
+            {isUpdating ? "Updating..." : "Find Matches"}
+            <Search size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content: Recommendations */}
+      <div className="flex-1">
+        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          <ShieldCheck className="text-[#4CAF50]" size={28} />
+          Smart Matches
+        </h2>
+        <p className="text-gray-400 text-sm mb-6">Tasks recommended for you based on skills and proximity.</p>
+
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4DA3FF]"></div>
+          </div>
+        ) : recommendations.length === 0 ? (
+          <div className="text-center py-20 bg-gray-800/20 rounded-2xl border border-gray-700/50">
+            <CheckCircle2 className="mx-auto h-16 w-16 text-gray-500 mb-4 opacity-50" />
+            <h3 className="text-xl font-semibold text-gray-300">No matches right now</h3>
+            <p className="text-gray-500 mt-2">Try updating your skills or checking back later.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {recommendations.map(task => (
+              <div key={task._id} className="bg-gray-800/40 border border-gray-700/50 rounded-2xl p-5 hover:border-[#4DA3FF]/50 transition-colors flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-lg font-bold">{task.title}</h3>
+                    {task.urgencyScore > 70 && (
+                      <span className="bg-red-500/20 text-red-500 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1">
+                        <AlertCircle size={10} /> Critical
+                      </span>
+                    )}
                   </div>
-
-                  <div className="flex-1 w-full">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-lg lg:text-xl font-semibold mb-2 truncate">{task.title}</h3>
-                        <p className="text-sm lg:text-base text-gray-400 mb-3 line-clamp-2">{task.description}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {task.matchReasons.map((reason, index) => (
-                        <div
-                          key={index}
-                          className="px-2 lg:px-3 py-1 bg-[#4CAF50]/10 border border-[#4CAF50] text-[#4CAF50] rounded-lg text-[10px] lg:text-xs font-medium"
-                        >
-                          ✓ {reason}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 mb-4">
-                      <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
-                        <Clock size={16} />
-                        <span>{task.timeRequired}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
-                        <MapPin size={16} />
-                        <span className="truncate">{task.distance} away</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-400">
-                        <Users size={16} />
-                        <span>
-                          {task.volunteersJoined} / {task.volunteersNeeded} joined
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {task.skills.map((skill, index) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-gray-800 text-gray-300 rounded text-[10px] lg:text-xs"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <div className="w-full flex-1">
-                        <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <Link
-                        to={`/complete/${task.id}`}
-                        className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:from-[#4DA3FF]/80 hover:to-[#4CAF50]/80 rounded-xl font-medium transition-all duration-200 shadow-lg shadow-[#4DA3FF]/20 text-center"
-                      >
-                        Accept Task
-                      </Link>
-                    </div>
+                  <p className="text-sm text-gray-400 mb-3">{task.description}</p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {task.requiredSkills.map((skill: string) => (
+                      <span key={skill} className={`px-2 py-1 rounded border ${
+                        task.matchedSkills?.includes(skill)
+                          ? "bg-[#4CAF50]/10 border-[#4CAF50]/30 text-[#4CAF50]"
+                          : "bg-gray-700/50 border-gray-600 text-gray-400"
+                      }`}>
+                        {skill}
+                      </span>
+                    ))}
                   </div>
                 </div>
+
+                <div className="w-full sm:w-auto flex flex-col items-end gap-3 shrink-0">
+                  <div className="text-sm font-semibold bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-700/50 text-[#4DA3FF]">
+                    {task.matchScore} Match Score
+                  </div>
+                  <button 
+                    onClick={() => acceptTask(task._id)}
+                    className="w-full sm:w-auto px-6 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Accept Task
+                  </button>
+                </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

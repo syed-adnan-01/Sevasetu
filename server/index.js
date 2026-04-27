@@ -23,7 +23,13 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, default: 'User' }
+  role: { type: String, default: 'User' },
+  skills: [String],
+  availability: { type: Boolean, default: true },
+  location: {
+    lat: Number,
+    lng: Number
+  }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -233,6 +239,84 @@ app.get('/api/tasks', async (req, res) => {
   try {
     const tasks = await Task.find().sort({ createdAt: -1 }).populate('reportId');
     res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Profile Update API
+app.put('/api/auth/profile', async (req, res) => {
+  try {
+    // For demo purposes, we will accept the email to identify the user
+    // In production, this should be verified via JWT middleware
+    const { email, skills, availability, location } = req.body;
+    const user = await User.findOneAndUpdate(
+      { email },
+      { skills, availability, location },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Smart Matching Engine
+app.get('/api/tasks/recommendations', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ message: 'User email required' });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const openTasks = await Task.find({ status: 'open' });
+
+    // Scoring Logic
+    const scoredTasks = openTasks.map(task => {
+      let matchScore = 0;
+      
+      // 1. Skill Match
+      const matchedSkills = task.requiredSkills.filter(skill => user.skills?.includes(skill));
+      matchScore += (matchedSkills.length * 20); // 20 points per matched skill
+
+      // 2. Base Urgency (Critical tasks surface higher)
+      matchScore += (task.urgencyScore * 0.5);
+
+      // 3. Proximity Match (Simulated for demo)
+      // In a real app, use the Haversine formula here to calculate distance
+      if (user.location && task.location) {
+        const distLat = Math.abs((user.location.lat || 0) - (task.location.lat || 0));
+        const distLng = Math.abs((user.location.lng || 0) - (task.location.lng || 0));
+        if (distLat < 0.1 && distLng < 0.1) {
+            matchScore += 30; // Very close
+        }
+      }
+
+      return { ...task.toObject(), matchScore, matchedSkills };
+    });
+
+    // Sort by highest score first
+    scoredTasks.sort((a, b) => b.matchScore - a.matchScore);
+
+    res.json(scoredTasks.slice(0, 10)); // Return top 10
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Task Assignment API
+app.put('/api/tasks/:id/assign', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    task.status = 'assigned';
+    await task.save();
+    res.json(task);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
