@@ -32,13 +32,54 @@ const reportSchema = new mongoose.Schema({
 
 const Report = mongoose.model('Report', reportSchema);
 
+// Urgency Engine Logic
+const calculateUrgency = async (description, location) => {
+  let score = 10; // Base score for any report
+  if (!description) return score;
+
+  const descLower = description.toLowerCase();
+  
+  // 1. Keyword Analysis
+  const criticalKeywords = ['critical', 'urgent', 'dying', 'dead', 'starving', 'bleeding', 'emergency', 'trapped', 'fire', 'collapsed', 'severe', 'death'];
+  const highKeywords = ['need', 'help', 'shortage', 'food', 'water', 'medical', 'injured', 'sick', 'broken', 'stuck', 'flood', 'power', 'outage'];
+  
+  let keywordScore = 0;
+  criticalKeywords.forEach(kw => { if(descLower.includes(kw)) keywordScore += 30; });
+  highKeywords.forEach(kw => { if(descLower.includes(kw)) keywordScore += 15; });
+  
+  // Max keyword score is 60 to allow frequency/recency to play a role
+  score += Math.min(keywordScore, 60);
+
+  // 2. Frequency / Recency Analysis
+  // If many similar problems are reported in the last 24 hours
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  
+  // Currently checking all recent pending reports. 
+  // In a full map integration, we would filter by `location` radius here.
+  const similarReportsCount = await Report.countDocuments({
+    status: 'pending',
+    timestamp: { $gte: oneDayAgo }
+  });
+
+  // Boost score by 5 for every recent active report, max 30 points
+  score += Math.min(similarReportsCount * 5, 30);
+
+  return Math.min(score, 100); // Cap at 100
+};
+
 // API Endpoints
 app.post('/api/reports', async (req, res) => {
   try {
-    const newReport = new Report(req.body);
+    const reportData = req.body;
+    
+    // Calculate Urgency Score
+    reportData.urgencyScore = await calculateUrgency(reportData.description, reportData.location);
+    
+    const newReport = new Report(reportData);
     await newReport.save();
     res.status(201).json(newReport);
   } catch (err) {
+    console.error('Save error:', err);
     res.status(400).json({ message: err.message });
   }
 });
