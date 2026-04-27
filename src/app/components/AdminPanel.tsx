@@ -3,21 +3,34 @@ import { Plus, Bell, TrendingUp, Users, CheckCircle, AlertCircle, Clock, MapPin,
 
 export function AdminPanel() {
   const [reports, setReports] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchReports();
+    fetchData();
   }, []);
 
-  const fetchReports = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/reports');
-      const data = await response.json();
-      setReports(data);
+      const [reportsRes, tasksRes] = await Promise.all([
+        fetch('http://localhost:5000/api/reports'),
+        fetch('http://localhost:5000/api/tasks')
+      ]);
+      setReports(await reportsRes.json());
+      setTasks(await tasksRes.json());
     } catch (err) {
-      console.error("Failed to fetch reports:", err);
+      console.error("Failed to fetch data:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleVerifyTask = async (taskId: string) => {
+    try {
+      await fetch(`http://localhost:5000/api/tasks/${taskId}/verify`, { method: "PUT" });
+      fetchData(); // Refresh to update map/report status
+    } catch (err) {
+      console.error("Verification failed:", err);
     }
   };
 
@@ -28,12 +41,7 @@ export function AdminPanel() {
     { zone: "West Side", available: 29, active: 18 },
   ];
 
-  const recentActivity = [
-    { action: "Task completed", detail: "Water distribution in Zone A", time: "5 min ago", type: "success" },
-    { action: "New report", detail: "Power outage in East District", time: "12 min ago", type: "info" },
-    { action: "Volunteers joined", detail: "3 volunteers joined medical task", time: "18 min ago", type: "success" },
-    { action: "Critical alert", detail: "Contamination detected in water source", time: "25 min ago", type: "critical" },
-  ];
+  const pendingVerification = tasks.filter(t => t.status === 'completed' && !t.verifiedByAdmin);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -43,17 +51,6 @@ export function AdminPanel() {
         return "bg-[#FFC857]/20 border-[#FFC857] text-[#FFC857]";
       default:
         return "bg-[#4DA3FF]/20 border-[#4DA3FF] text-[#4DA3FF]";
-    }
-  };
-
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case "success":
-        return "bg-[#4CAF50]/20 text-[#4CAF50]";
-      case "critical":
-        return "bg-[#FF4D4D]/20 text-[#FF4D4D]";
-      default:
-        return "bg-[#4DA3FF]/20 text-[#4DA3FF]";
     }
   };
 
@@ -187,23 +184,53 @@ export function AdminPanel() {
 
           <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300 h-fit">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Clock className="text-[#4DA3FF]" size={20} />
-              Recent Activity
+              <CheckCircle className="text-[#4CAF50]" size={20} />
+              Pending Verification
             </h3>
-            <div className="space-y-3">
-              {recentActivity.map((activity, index) => (
-                <div
-                  key={index}
-                  className="p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:bg-gray-800/70 hover:border-gray-600 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
-                >
-                  <div className={`inline-block px-2 py-1 rounded text-xs font-medium mb-2 ${getActivityColor(activity.type)}`}>
-                    {activity.action}
+            
+            {pendingVerification.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 bg-gray-800/30 rounded-xl border border-dashed border-gray-700">
+                No tasks awaiting verification.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingVerification.map((task) => (
+                  <div
+                    key={task._id}
+                    className="p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 flex flex-col gap-3 transition-all duration-300"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-semibold">{task.title}</div>
+                        <div className="text-xs text-gray-400 mt-1">Submitted recently</div>
+                      </div>
+                      <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">
+                        Review
+                      </span>
+                    </div>
+                    
+                    {task.completionNotes && (
+                      <div className="bg-gray-900/50 p-3 rounded-lg text-sm text-gray-300 border border-gray-700">
+                        "{task.completionNotes}"
+                      </div>
+                    )}
+                    
+                    {task.completionProof && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-gray-700">
+                        <img src={task.completionProof} alt="Proof" className="w-full h-auto object-cover max-h-40" />
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={() => handleVerifyTask(task._id)}
+                      className="w-full mt-2 py-2 bg-[#4CAF50]/10 text-[#4CAF50] hover:bg-[#4CAF50] hover:text-white border border-[#4CAF50]/30 font-bold rounded-lg transition-colors flex justify-center items-center gap-2"
+                    >
+                      <CheckCircle size={18} /> Verify & Close Task
+                    </button>
                   </div>
-                  <div className="text-sm mb-1">{activity.detail}</div>
-                  <div className="text-xs text-gray-500">{activity.time}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

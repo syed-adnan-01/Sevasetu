@@ -1,142 +1,166 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Camera, CheckCircle, X, ArrowLeft } from "lucide-react";
+import { Camera, CheckCircle2, FileText, Upload } from "lucide-react";
 
 export function TaskCompletion() {
   const { taskId } = useParams();
   const navigate = useNavigate();
-  const [preview, setPreview] = useState<string | null>(null);
+  const [task, setTask] = useState<any>(null);
   const [notes, setNotes] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDone, setIsDone] = useState(false);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    // Fetch specific task. In a real app we'd have a GET /api/tasks/:id endpoint.
+    // For demo, we'll fetch all and find it.
+    const fetchTask = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/tasks');
+        const data = await res.json();
+        const found = data.find((t: any) => t._id === taskId);
+        setTask(found);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchTask();
+  }, [taskId]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview(reader.result as string);
+        setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = () => {
-    setSubmitted(true);
-    setTimeout(() => {
-      navigate("/tasks");
-    }, 3000);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await fetch(`http://localhost:5000/api/tasks/${taskId}/complete`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          completionNotes: notes,
+          completionProof: imagePreview
+        })
+      });
+      setIsDone(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  if (submitted) {
+  if (isDone) {
     return (
-      <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="mb-6 inline-block p-6 bg-gradient-to-br from-[#4CAF50]/20 to-[#4DA3FF]/20 rounded-full border border-[#4CAF50]/30 shadow-2xl shadow-[#4CAF50]/20 animate-pulse">
-            <CheckCircle size={80} className="text-[#4CAF50]" />
+      <div className="p-8 flex items-center justify-center h-full">
+        <div className="text-center bg-gray-800/50 p-10 rounded-3xl border border-gray-700/50 max-w-md w-full">
+          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="h-10 w-10 text-green-500" />
           </div>
-          <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-[#4CAF50] to-[#4DA3FF] bg-clip-text text-transparent">
-            Task Completed!
-          </h2>
-          <p className="text-gray-400 mb-2">Thank you for your contribution</p>
-          <p className="text-sm text-gray-500">Redirecting to tasks...</p>
+          <h2 className="text-2xl font-bold mb-3">Task Completed!</h2>
+          <p className="text-gray-400 mb-8">
+            Thank you for your service. Your proof has been submitted to the NGO administrators for verification.
+          </p>
+          <button 
+            onClick={() => navigate('/volunteers')}
+            className="px-6 py-3 bg-[#4DA3FF] text-white font-bold rounded-xl hover:bg-blue-600 transition-colors"
+          >
+            Find More Tasks
+          </button>
         </div>
       </div>
     );
   }
 
+  if (!task) {
+    return <div className="p-8 text-center text-gray-400">Loading task details...</div>;
+  }
+
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 lg:p-6">
-      <div className="max-w-2xl mx-auto">
-        <button
-          onClick={() => navigate("/tasks")}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors text-sm"
-        >
-          <ArrowLeft size={18} />
-          Back to Tasks
-        </button>
+    <div className="p-6 lg:p-8 max-w-3xl mx-auto">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold flex items-center gap-3 mb-2">
+          <CheckCircle2 className="text-[#4CAF50]" size={32} />
+          Complete Task
+        </h2>
+        <p className="text-gray-400">Provide proof of work to resolve this issue on the map.</p>
+      </div>
 
-        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 lg:p-8 border border-gray-700/50 shadow-2xl hover:shadow-[#4DA3FF]/10 transition-all duration-300">
-          <h2 className="text-xl lg:text-2xl font-bold mb-2">Complete Task #{taskId}</h2>
-          <p className="text-sm lg:text-base text-gray-400 mb-6">Upload proof of completion and add any notes</p>
+      <div className="bg-gray-800/40 border border-gray-700/50 rounded-2xl p-6 mb-8">
+        <h3 className="text-xl font-bold mb-2">{task.title}</h3>
+        <p className="text-gray-400 text-sm mb-4">{task.description}</p>
+        <div className="flex gap-2">
+          <span className="px-3 py-1 bg-yellow-500/10 text-yellow-500 rounded text-xs font-semibold uppercase tracking-wider border border-yellow-500/20">
+            {task.status}
+          </span>
+        </div>
+      </div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">Proof of Completion</label>
-              {preview ? (
-                <div className="relative">
-                  <img
-                    src={preview}
-                    alt="Proof"
-                    className="w-full h-48 lg:h-64 object-cover rounded-xl border border-gray-700"
-                  />
-                  <button
-                    onClick={() => setPreview(null)}
-                    className="absolute top-3 right-3 p-2 bg-[#FF4D4D] hover:bg-[#FF4D4D]/80 rounded-lg transition-colors shadow-lg"
-                  >
-                    <X size={20} />
-                  </button>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+            <FileText size={16} /> Completion Notes
+          </label>
+          <textarea
+            required
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Describe what actions were taken..."
+            className="w-full bg-gray-900/50 border border-gray-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-[#4DA3FF] focus:outline-none transition-all resize-none h-32"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+            <Camera size={16} /> Proof of Completion (Optional Image)
+          </label>
+          <div className="relative group">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImageChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+            <div className={`border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-8 transition-colors ${
+              imagePreview ? "border-[#4DA3FF] bg-[#4DA3FF]/5" : "border-gray-700 bg-gray-900/50 group-hover:border-gray-500 group-hover:bg-gray-800/50"
+            }`}>
+              {imagePreview ? (
+                <div className="relative w-full max-w-sm rounded-lg overflow-hidden border border-gray-700">
+                  <img src={imagePreview} alt="Proof preview" className="w-full h-auto" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-white font-medium flex items-center gap-2">
+                      <Upload size={18} /> Tap to change
+                    </span>
+                  </div>
                 </div>
               ) : (
-                <label className="block">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 lg:p-12 text-center cursor-pointer hover:border-[#4DA3FF] hover:bg-gray-800/30 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-[#4DA3FF]/10">
-                    <Camera size={40} className="mx-auto mb-4 text-gray-500" />
-                    <p className="text-gray-400 text-sm">Upload proof image</p>
-                    <p className="text-xs text-gray-500 mt-2">Click or drag to upload</p>
-                  </div>
-                </label>
+                <>
+                  <Upload className="h-10 w-10 text-gray-500 mb-3" />
+                  <span className="text-sm font-medium text-gray-300">Tap to take a photo or upload</span>
+                  <span className="text-xs text-gray-500 mt-1">Helps Admins verify the work quickly</span>
+                </>
               )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">Completion Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any important details about task completion..."
-                rows={5}
-                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:border-[#4DA3FF] focus:ring-2 focus:ring-[#4DA3FF]/20 transition-all text-white placeholder-gray-500 text-sm lg:text-base"
-              ></textarea>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => navigate("/tasks")}
-                className="flex-1 px-6 py-3 lg:py-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl font-medium transition-all duration-200 text-sm lg:text-base"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!preview}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 lg:py-4 rounded-xl font-medium transition-all duration-200 ${
-                  preview
-                    ? "bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:from-[#4DA3FF]/80 hover:to-[#4CAF50]/80 shadow-lg shadow-[#4DA3FF]/30"
-                    : "bg-gray-800 text-gray-500 cursor-not-allowed"
-                } text-sm lg:text-base`}
-              >
-                <CheckCircle size={20} />
-                Submit Completion
-              </button>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 backdrop-blur-xl bg-gradient-to-br from-gray-800/30 to-gray-900/30 rounded-2xl p-6 border border-gray-700/50 hover:border-[#4CAF50]/50 hover:bg-gray-800/40 transition-all duration-300">
-          <h3 className="font-semibold mb-3 text-[#4CAF50]">Completion Guidelines</h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li>• Upload a clear photo showing completed work</li>
-            <li>• Include before/after shots if applicable</li>
-            <li>• Note any challenges or additional needs</li>
-            <li>• Mention materials used or resources needed</li>
-          </ul>
-        </div>
-      </div>
+        <button
+          type="submit"
+          disabled={isSubmitting || !notes}
+          className="w-full py-4 bg-gradient-to-r from-[#4DA3FF] to-[#4CAF50] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg shadow-lg shadow-[#4DA3FF]/20 transition-all active:scale-[0.98]"
+        >
+          {isSubmitting ? "Submitting Proof..." : "Submit for Verification"}
+        </button>
+      </form>
     </div>
   );
 }

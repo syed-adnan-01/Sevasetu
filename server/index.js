@@ -62,6 +62,9 @@ const taskSchema = new mongoose.Schema({
     lat: Number,
     lng: Number
   },
+  completionProof: String, // Base64 image
+  completionNotes: String,
+  verifiedByAdmin: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -316,6 +319,51 @@ app.put('/api/tasks/:id/assign', async (req, res) => {
 
     task.status = 'assigned';
     await task.save();
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Task Completion API (Volunteer submits proof)
+app.put('/api/tasks/:id/complete', async (req, res) => {
+  try {
+    const { completionNotes, completionProof } = req.body;
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    task.status = 'completed';
+    task.completionNotes = completionNotes;
+    task.completionProof = completionProof;
+    await task.save();
+
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Task Verification API (Admin verifies and updates map)
+app.put('/api/tasks/:id/verify', async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    task.verifiedByAdmin = true;
+    await task.save();
+
+    // Reduce the urgency score of the parent report to reflect progress on the map
+    if (task.reportId) {
+      const report = await Report.findById(task.reportId);
+      if (report) {
+        report.urgencyScore = Math.max(0, report.urgencyScore - 30); // Reduce score
+        if (report.urgencyScore === 0) {
+          report.status = 'resolved';
+        }
+        await report.save();
+      }
+    }
+
     res.json(task);
   } catch (err) {
     res.status(500).json({ message: err.message });
