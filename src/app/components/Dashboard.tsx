@@ -1,110 +1,202 @@
-import { AlertCircle, Users, CheckCircle, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertCircle, Users, CheckCircle, MapPin, Loader2, Clock } from "lucide-react";
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 export function Dashboard() {
-  const urgentIssues = [
-    { id: 1, title: "Water contamination in Zone A", severity: "critical", location: "Downtown", volunteers: 3 },
-    { id: 2, title: "Food shortage reported", severity: "high", location: "East District", volunteers: 5 },
-    { id: 3, title: "Medical supplies needed", severity: "critical", location: "North Area", volunteers: 2 },
-    { id: 4, title: "Debris blocking main road", severity: "moderate", location: "West Side", volunteers: 4 },
-    { id: 5, title: "Power outage assistance", severity: "moderate", location: "South Zone", volunteers: 6 },
-  ];
+  const [reports, setReports] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [timeFilter, setTimeFilter] = useState("all"); // '24h', '7d', 'all'
 
-  const heatmapZones = [
-    { id: 1, x: 25, y: 30, intensity: "critical", size: 120 },
-    { id: 2, x: 60, y: 45, intensity: "moderate", size: 90 },
-    { id: 3, x: 40, y: 70, intensity: "high", size: 100 },
-    { id: 4, x: 75, y: 25, intensity: "stable", size: 80 },
-    { id: 5, x: 15, y: 60, intensity: "high", size: 95 },
-  ];
+  useEffect(() => {
+    fetchReports();
+  }, []);
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return "bg-[#FF4D4D]/20 border-[#FF4D4D] text-[#FF4D4D]";
-      case "high":
-        return "bg-[#FFC857]/20 border-[#FFC857] text-[#FFC857]";
-      case "moderate":
-        return "bg-[#4DA3FF]/20 border-[#4DA3FF] text-[#4DA3FF]";
-      default:
-        return "bg-[#4CAF50]/20 border-[#4CAF50] text-[#4CAF50]";
+  const fetchReports = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/reports');
+      const data = await response.json();
+      setReports(data);
+    } catch (err) {
+      console.error("Failed to fetch reports:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getHeatmapColor = (intensity: string) => {
-    switch (intensity) {
-      case "critical":
-        return "bg-[#FF4D4D]";
-      case "high":
-        return "bg-[#FFC857]";
-      case "moderate":
-        return "bg-[#4DA3FF]";
-      default:
-        return "bg-[#4CAF50]";
-    }
+  const filteredReports = reports.filter(report => {
+    if (timeFilter === "all") return true;
+    const reportDate = new Date(report.timestamp).getTime();
+    const now = Date.now();
+    if (timeFilter === "24h") return (now - reportDate) <= 24 * 60 * 60 * 1000;
+    if (timeFilter === "7d") return (now - reportDate) <= 7 * 24 * 60 * 60 * 1000;
+    return true;
+  });
+
+  const getSeverityColor = (score: number) => {
+    if (score > 70) return "bg-[#FF4D4D]/20 border-[#FF4D4D] text-[#FF4D4D]";
+    if (score > 40) return "bg-[#FFC857]/20 border-[#FFC857] text-[#FFC857]";
+    return "bg-[#4CAF50]/20 border-[#4CAF50] text-[#4CAF50]";
+  };
+
+  const getSeverityLabel = (score: number) => {
+    if (score > 70) return "CRITICAL";
+    if (score > 40) return "HIGH";
+    return "MODERATE";
+  };
+
+  const getMapColor = (score: number) => {
+    if (score > 70) return "#FF4D4D";
+    if (score > 40) return "#FFC857";
+    return "#4CAF50";
   };
 
   return (
     <div className="p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        <h2 className="text-2xl font-bold">Command Center</h2>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-400">Time Range:</span>
+          <select 
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg focus:ring-[#4DA3FF] focus:border-[#4DA3FF] block p-2 outline-none"
+          >
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="all">All Time</option>
+          </select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4CAF50]/20 hover:scale-105 hover:border-[#4CAF50]/50 transition-all duration-300 cursor-pointer">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-sm">Active Volunteers</div>
-              <Users className="text-[#4CAF50]" size={24} />
-            </div>
-            <div className="text-3xl font-bold">247</div>
-            <div className="text-xs text-[#4CAF50] mt-1">+12% from yesterday</div>
+        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-gray-400 text-sm">Active Volunteers</div>
+            <Users className="text-[#4CAF50]" size={24} />
           </div>
+          <div className="text-3xl font-bold">247</div>
+          <div className="text-xs text-[#4CAF50] mt-1">+12% from yesterday</div>
+        </div>
 
-          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/20 hover:scale-105 hover:border-[#4DA3FF]/50 transition-all duration-300 cursor-pointer">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-sm">Tasks Completed</div>
-              <CheckCircle className="text-[#4DA3FF]" size={24} />
-            </div>
-            <div className="text-3xl font-bold">89</div>
-            <div className="text-xs text-[#4DA3FF] mt-1">Today</div>
+        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-gray-400 text-sm">Total Reports</div>
+            <CheckCircle className="text-[#4DA3FF]" size={24} />
           </div>
+          <div className="text-3xl font-bold">{filteredReports.length}</div>
+          <div className="text-xs text-[#4DA3FF] mt-1">Filtered by Time</div>
+        </div>
 
-          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#FF4D4D]/20 hover:scale-105 hover:border-[#FF4D4D]/50 transition-all duration-300 cursor-pointer">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-sm">Critical Issues</div>
-              <AlertCircle className="text-[#FF4D4D]" size={24} />
-            </div>
-            <div className="text-3xl font-bold">12</div>
-            <div className="text-xs text-[#FF4D4D] mt-1">Requires attention</div>
+        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-gray-400 text-sm">Critical Issues</div>
+            <AlertCircle className="text-[#FF4D4D]" size={24} />
+          </div>
+          <div className="text-3xl font-bold">{filteredReports.filter(r => r.urgencyScore > 70).length}</div>
+          <div className="text-xs text-[#FF4D4D] mt-1">Requires attention</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* The Living Pulse Map */}
+        <div className="lg:col-span-2 backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 border border-gray-700/50 shadow-xl flex flex-col">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 px-2">
+            <MapPin className="text-[#4DA3FF]" size={20} />
+            Living Pulse Map
+          </h3>
+          <div className="flex-1 min-h-[400px] rounded-xl overflow-hidden relative z-0">
+            <MapContainer 
+              center={[28.6139, 77.2090]} // Default to New Delhi
+              zoom={11} 
+              style={{ height: '100%', width: '100%', background: '#0B0F14' }}
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+              />
+              {filteredReports.map((report, idx) => {
+                // Temporary hack for demo: generate random offset around center if coordinates are missing/0
+                let lat = report.location?.lat;
+                let lng = report.location?.lng;
+                if (!lat && !lng || (lat === 0 && lng === 0)) {
+                   // pseudo-random deterministic based on ID or index
+                   const seed = report._id ? parseInt(report._id.substring(report._id.length - 4), 16) : idx;
+                   lat = 28.6139 + ((seed % 100) / 100 - 0.5) * 0.15;
+                   lng = 77.2090 + (((seed * 7) % 100) / 100 - 0.5) * 0.15;
+                }
+                
+                const color = getMapColor(report.urgencyScore);
+                const isCritical = report.urgencyScore > 70;
+                
+                return (
+                  <CircleMarker 
+                    key={report._id || idx} 
+                    center={[lat, lng]} 
+                    radius={isCritical ? 14 : 8}
+                    pathOptions={{ 
+                      fillColor: color, 
+                      color: color, 
+                      fillOpacity: isCritical ? 0.8 : 0.5,
+                      weight: isCritical ? 2 : 1
+                    }}
+                  >
+                    <Popup className="custom-popup">
+                      <div className="text-gray-900 p-1">
+                        <div className="font-bold text-sm mb-1">Score: {report.urgencyScore}</div>
+                        <div className="text-xs line-clamp-3">{report.description}</div>
+                        <div className="text-[10px] text-gray-500 mt-2">{new Date(report.timestamp).toLocaleString()}</div>
+                      </div>
+                    </Popup>
+                  </CircleMarker>
+                )
+              })}
+            </MapContainer>
           </div>
         </div>
 
-        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl">
+        {/* Top Urgent Issues List */}
+        <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl overflow-hidden flex flex-col">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <AlertCircle className="text-[#FF4D4D]" size={20} />
-            Top 5 Urgent Issues
+            Top Urgent Issues
           </h3>
-          <div className="space-y-3">
-            {urgentIssues.map((issue) => (
-              <div
-                key={issue.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:bg-gray-800/70 cursor-pointer gap-4"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`px-3 py-1 rounded-lg border text-[10px] sm:text-xs font-medium ${getSeverityColor(issue.severity)}`}>
-                    {issue.severity.toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{issue.title}</div>
-                    <div className="text-sm text-gray-400 flex items-center gap-1 mt-1">
-                      <MapPin size={14} />
-                      {issue.location}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-400 ml-12 sm:ml-0">
-                  <Users size={16} />
-                  {issue.volunteers} volunteers
-                </div>
+          <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="animate-spin text-gray-500" size={32} />
               </div>
-            ))}
+            ) : filteredReports.length === 0 ? (
+              <div className="text-center text-gray-500 mt-10">No active issues in this time range.</div>
+            ) : (
+              filteredReports
+                .sort((a, b) => b.urgencyScore - a.urgencyScore)
+                .slice(0, 8)
+                .map((issue, idx) => (
+                <div
+                  key={issue._id || idx}
+                  className="flex flex-col p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 transition-all duration-300 hover:shadow-xl hover:bg-gray-800/70 gap-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold ${getSeverityColor(issue.urgencyScore)}`}>
+                      {getSeverityLabel(issue.urgencyScore)}
+                    </div>
+                    <div className="text-xs font-bold text-gray-400">Score: {issue.urgencyScore}</div>
+                  </div>
+                  <div className="text-sm font-medium line-clamp-2 text-gray-200">
+                    {issue.description || "No description provided."}
+                  </div>
+                  <div className="text-xs text-gray-500 flex items-center gap-1">
+                    <Clock size={12} />
+                    {new Date(issue.timestamp).toLocaleTimeString()}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
