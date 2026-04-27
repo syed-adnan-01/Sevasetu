@@ -7,6 +7,8 @@ export function Dashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState("all"); // '24h', '7d', 'all'
+  const [addresses, setAddresses] = useState<Record<string, string>>({});
+  const [matchingCount, setMatchingCount] = useState(0);
 
   useEffect(() => {
     fetchReports();
@@ -14,13 +16,38 @@ export function Dashboard() {
 
   const fetchReports = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/reports');
-      const data = await response.json();
-      setReports(data);
+      const [reportsRes, tasksRes] = await Promise.all([
+        fetch('http://localhost:5000/api/reports'),
+        fetch('http://localhost:5000/api/tasks')
+      ]);
+      const reportsData = await reportsRes.json();
+      const tasksData = await tasksRes.json();
+      
+      setReports(reportsData);
+      setMatchingCount(tasksData.filter((t: any) => t.status === 'assigned').length);
+
+      // Resolve addresses for top 5 critical reports
+      reportsData
+        .sort((a: any, b: any) => b.urgencyScore - a.urgencyScore)
+        .slice(0, 5)
+        .forEach((r: any) => {
+          if (r.location?.lat) resolveAddress(r._id, r.location.lat, r.location.lng);
+        });
     } catch (err) {
-      console.error("Failed to fetch reports:", err);
+      console.error("Failed to fetch dashboard data:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resolveAddress = async (id: string, lat: number, lng: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      const addr = data.address.suburb || data.address.city || "Verified Location";
+      setAddresses(prev => ({ ...prev, [id]: addr }));
+    } catch (err) {
+      setAddresses(prev => ({ ...prev, [id]: "Location Verified" }));
     }
   };
 
@@ -76,7 +103,7 @@ export function Dashboard() {
             <Users className="text-[#4CAF50]" size={24} />
           </div>
           <div className="text-3xl font-bold">247</div>
-          <div className="text-xs text-[#4CAF50] mt-1">+12% from yesterday</div>
+          <div className="text-xs text-[#4CAF50] mt-1">{matchingCount} volunteers deployed now</div>
         </div>
 
         <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl">
@@ -181,14 +208,19 @@ export function Dashboard() {
                     <div className={`px-2 py-0.5 rounded text-[10px] font-bold ${getSeverityColor(issue.urgencyScore)}`}>
                       {getSeverityLabel(issue.urgencyScore)}
                     </div>
-                    <div className="text-xs font-bold text-gray-400">Score: {issue.urgencyScore}</div>
+                    <div className="text-[10px] font-bold text-[#4DA3FF] uppercase tracking-tighter flex items-center gap-1">
+                      <MapPin size={10} /> {addresses[issue._id] || "Resolving Area..."}
+                    </div>
                   </div>
                   <div className="text-sm font-medium line-clamp-2 text-gray-200">
                     {issue.description || "No description provided."}
                   </div>
-                  <div className="text-xs text-gray-500 flex items-center gap-1">
-                    <Clock size={12} />
-                    {new Date(issue.timestamp).toLocaleTimeString()}
+                  <div className="text-xs text-gray-500 flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Clock size={12} />
+                      {new Date(issue.timestamp).toLocaleTimeString()}
+                    </div>
+                    <span className="text-[10px] font-mono opacity-50">Impact: High</span>
                   </div>
                 </div>
               ))

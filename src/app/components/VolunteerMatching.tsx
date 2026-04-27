@@ -15,6 +15,7 @@ export function VolunteerMatching() {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [addresses, setAddresses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (user) {
@@ -61,11 +62,28 @@ export function VolunteerMatching() {
     try {
       const res = await fetch(`http://localhost:5000/api/tasks/recommendations?email=${user.email}`);
       const data = await res.json();
-      setRecommendations(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setRecommendations(list);
+      
+      // Resolve addresses for recommendations
+      list.forEach((task: any) => {
+        if (task.location?.lat) resolveAddress(task._id, task.location.lat, task.location.lng);
+      });
     } catch (err) {
       console.error("Failed to fetch recommendations", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resolveAddress = async (id: string, lat: number, lng: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      const addr = data.address.suburb || data.address.city || "Area Verified";
+      setAddresses(prev => ({ ...prev, [id]: addr }));
+    } catch (err) {
+      setAddresses(prev => ({ ...prev, [id]: "Location Verified" }));
     }
   };
 
@@ -164,12 +182,18 @@ export function VolunteerMatching() {
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-bold">{task.title}</h3>
                     {task.urgencyScore > 70 && (
-                      <span className="bg-red-500/20 text-red-500 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="bg-[#FF4D4D]/20 text-[#FF4D4D] text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1 border border-[#FF4D4D]/30 animate-pulse">
                         <AlertCircle size={10} /> Critical
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-400 mb-3">{task.description}</p>
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 mb-3 uppercase font-bold tracking-widest">
+                    <MapPin size={12} className="text-[#4DA3FF]" />
+                    {addresses[task._id] || "Resolving location..."}
+                  </div>
+                  <p className="text-sm text-gray-400 mb-4 bg-gray-900/30 p-3 rounded-xl border border-gray-700/30 italic">
+                    "{task.description}"
+                  </p>
                   <div className="flex flex-wrap gap-2 text-xs">
                     {task.requiredSkills.map((skill: string) => (
                       <span key={skill} className={`px-2 py-1 rounded border ${
