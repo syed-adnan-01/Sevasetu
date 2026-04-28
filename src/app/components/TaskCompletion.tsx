@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Camera, CheckCircle2, FileText, Upload } from "lucide-react";
+import { API_BASE_URL } from "../../config";
 
 export function TaskCompletion() {
   const { taskId } = useParams();
@@ -16,7 +17,7 @@ export function TaskCompletion() {
     // For demo, we'll fetch all and find it.
     const fetchTask = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/tasks');
+        const res = await fetch(`${API_BASE_URL}/tasks`);
         const data = await res.json();
         const found = data.find((t: any) => t._id === taskId);
         setTask(found);
@@ -42,7 +43,7 @@ export function TaskCompletion() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await fetch(`http://localhost:5000/api/tasks/${taskId}/complete`, {
+      await fetch(`${API_BASE_URL}/tasks/${taskId}/complete`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

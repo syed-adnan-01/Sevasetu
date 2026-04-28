@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AlertCircle, Users, CheckCircle, MapPin, Loader2, Clock } from "lucide-react";
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { API_BASE_URL } from "../../config";
 
 export function Dashboard() {
   const [reports, setReports] = useState<any[]>([]);
@@ -17,8 +18,8 @@ export function Dashboard() {
   const fetchReports = async () => {
     try {
       const [reportsRes, tasksRes] = await Promise.all([
-        fetch('http://localhost:5000/api/reports'),
-        fetch('http://localhost:5000/api/tasks')
+        fetch(`${API_BASE_URL}/reports`),
+        fetch(`${API_BASE_URL}/tasks`)
       ]);
       const reportsData = await reportsRes.json();
       const tasksData = await tasksRes.json();

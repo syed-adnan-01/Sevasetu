@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock, MapPin, Loader2, RefreshCw, FileText, Search, Filter, ChevronRight } from "lucide-react";
+import { API_BASE_URL } from "../../config";
 
 export function ReportsHistory() {
   const [reports, setReports] = useState<any[]>([]);
@@ -14,7 +15,7 @@ export function ReportsHistory() {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/reports');
+      const response = await fetch(`${API_BASE_URL}/reports`);
       const data = await response.json();
       setReports(data);
       

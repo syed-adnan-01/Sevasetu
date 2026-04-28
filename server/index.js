@@ -312,6 +312,10 @@ app.put('/api/tasks/:id/verify', async (req, res) => {
   res.json(task);
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Seva-Setu Server live on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Seva-Setu Server live on port ${PORT}`);
+  });
+}
+
+module.exports = app;

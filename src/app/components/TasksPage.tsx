@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ClipboardList, Clock, AlertCircle, CheckCircle2, ChevronRight, MapPin, X, Camera, Send, Loader2, Navigation } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import EXIF from "exif-js";
+import { API_BASE_URL } from "../../config";
 
 export function TasksPage() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -23,7 +24,7 @@ export function TasksPage() {
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/tasks');
+      const response = await fetch(`${API_BASE_URL}/tasks`);
       const data = await response.json();
       setTasks(data);
       
@@ -156,7 +157,7 @@ export function TasksPage() {
     
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/tasks/${selectedTask._id}/complete`, {
+      const response = await fetch(`${API_BASE_URL}/tasks/${selectedTask._id}/complete`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

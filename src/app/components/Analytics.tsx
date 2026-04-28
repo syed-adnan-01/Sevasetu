@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { Users, AlertTriangle, CheckCircle, TrendingUp, Filter, Download } from "lucide-react";
 import { motion } from "motion/react";
+import { API_BASE_URL } from "../../config";
 
 const COLORS = ["#4DA3FF", "#4CAF50", "#FFC107", "#FF4D4D", "#9C27B0"];
 
@@ -16,8 +17,8 @@ export function Analytics() {
     const fetchData = async () => {
       try {
         const [reportsRes, tasksRes] = await Promise.all([
-          fetch("http://localhost:5000/api/reports"),
-          fetch("http://localhost:5000/api/tasks")
+          fetch(`${API_BASE_URL}/reports`),
+          fetch(`${API_BASE_URL}/tasks`)
         ]);
         
         const reports = await reportsRes.json();

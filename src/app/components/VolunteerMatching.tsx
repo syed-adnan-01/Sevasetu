@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, ShieldCheck, MapPin, Search, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const AVAILABLE_SKILLS = [
   "Medical", "First Aid", "Doctor", "Nurse", 
@@ -36,7 +37,7 @@ export function VolunteerMatching() {
     setIsUpdating(true);
     try {
       // 1. Update Profile
-      await fetch("http://localhost:5000/api/auth/profile", {
+      await fetch(`${API_BASE_URL}/auth/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -60,7 +61,7 @@ export function VolunteerMatching() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/tasks/recommendations?email=${user.email}`);
+      const res = await fetch(`${API_BASE_URL}/tasks/recommendations?email=${user.email}`);
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       setRecommendations(list);
@@ -89,7 +90,7 @@ export function VolunteerMatching() {
 
   const acceptTask = async (taskId: string) => {
     try {
-      await fetch(`http://localhost:5000/api/tasks/${taskId}/assign`, {
+      await fetch(`${API_BASE_URL}/tasks/${taskId}/assign`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user?.email })

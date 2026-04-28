@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Bell, TrendingUp, Users, CheckCircle, AlertCircle, Clock, MapPin, Loader2, FileText, RefreshCw } from "lucide-react";
+import { API_BASE_URL } from "../../config";
 
 export function AdminPanel() {
   const [reports, setReports] = useState<any[]>([]);
@@ -14,8 +15,8 @@ export function AdminPanel() {
   const fetchData = async () => {
     try {
       const [reportsRes, tasksRes] = await Promise.all([
-        fetch('http://localhost:5000/api/reports'),
-        fetch('http://localhost:5000/api/tasks')
+        fetch(`${API_BASE_URL}/reports`),
+        fetch(`${API_BASE_URL}/tasks`)
       ]);
       const reportsData = await reportsRes.json();
       setReports(reportsData);
@@ -45,7 +46,7 @@ export function AdminPanel() {
 
   const handleVerifyTask = async (taskId: string) => {
     try {
-      await fetch(`http://localhost:5000/api/tasks/${taskId}/verify`, { method: "PUT" });
+      await fetch(`${API_BASE_URL}/tasks/${taskId}/verify`, { method: "PUT" });
       fetchData(); // Refresh to update map/report status
     } catch (err) {
       console.error("Verification failed:", err);

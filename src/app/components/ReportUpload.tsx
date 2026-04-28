@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Camera, Mic, Send, Sparkles, X, Loader2, Save, MapPin, Navigation } from "lucide-react";
 import Tesseract from "tesseract.js";
 import EXIF from "exif-js";
+import { API_BASE_URL } from "../../config";
 
 export function ReportUpload() {
   const [preview, setPreview] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export function ReportUpload() {
     setStatus("Analyzing image with Gemini AI...");
     
     try {
-      const response = await fetch('http://localhost:5000/api/analyze-image', {
+      const response = await fetch(`${API_BASE_URL}/analyze-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: imageSrc })
@@ -169,7 +170,7 @@ export function ReportUpload() {
     setIsProcessing(true);
     setStatus("Submitting to database...");
     try {
-      const response = await fetch('http://localhost:5000/api/reports', {
+      const response = await fetch(`${API_BASE_URL}/reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
@@ -200,7 +201,7 @@ export function ReportUpload() {
       
       try {
         for (const report of offlineReports) {
-          await fetch('http://localhost:5000/api/reports', {
+          await fetch(`${API_BASE_URL}/reports`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(report)
