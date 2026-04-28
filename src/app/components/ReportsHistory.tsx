@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { Clock, MapPin, Loader2, RefreshCw, FileText, Search, Filter, ChevronRight } from "lucide-react";
 import { API_BASE_URL } from "../../config";
+import { useAuth } from "../context/AuthContext";
 
 export function ReportsHistory() {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [addresses, setAddresses] = useState<Record<string, string>>({});
+  const [reportTasks, setReportTasks] = useState<Record<string, any[]>>({});
+  const [isInitiating, setIsInitiating] = useState<Record<string, boolean>>({});
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchReports();
@@ -19,14 +23,61 @@ export function ReportsHistory() {
       const data = await response.json();
       setReports(data);
       
-      // Background resolve all report locations
+      // Background resolve all report locations and fetch associated tasks
       data.forEach((report: any) => {
         if (report.location?.lat) resolveAddress(report._id, report.location.lat, report.location.lng);
+        fetchTasksForReport(report._id);
       });
     } catch (err) {
       console.error("Failed to fetch reports:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchTasksForReport = async (reportId: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/tasks/report/${reportId}`);
+      const data = await res.json();
+      setReportTasks(prev => ({ ...prev, [reportId]: data }));
+    } catch (err) {
+      console.error(`Failed to fetch tasks for report ${reportId}:`, err);
+    }
+  };
+
+  const acceptTask = async (taskId: string, reportId: string) => {
+    if (!user) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email })
+      });
+      if (response.ok) {
+        // Refresh tasks for this report
+        fetchTasksForReport(reportId);
+      }
+    } catch (err) {
+      console.error("Failed to accept task:", err);
+    }
+  };
+
+  const initiateTasks = async (reportId: string) => {
+    if (!user) return;
+    setIsInitiating(prev => ({ ...prev, [reportId]: true }));
+    try {
+      const response = await fetch(`${API_BASE_URL}/reports/${reportId}/tasks/initiate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email })
+      });
+      if (response.ok) {
+        await fetchTasksForReport(reportId);
+      }
+    } catch (err) {
+      console.error("Failed to initiate tasks:", err);
+    } finally {
+      setIsInitiating(prev => ({ ...prev, [reportId]: false }));
     }
   };
 
@@ -164,6 +215,50 @@ export function ReportsHistory() {
                                   Details <ChevronRight size={16} />
                                 </button>
                               </div>
+
+                              {/* Tasks Section */}
+                              {reportTasks[report._id] && reportTasks[report._id].length > 0 ? (
+                                <div className="mt-4 pt-4 border-t border-gray-800/50">
+                                  <h4 className="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-3">Actionable Tasks</h4>
+                                  <div className="space-y-2">
+                                    {reportTasks[report._id].map((task) => (
+                                      <div key={task._id} className="flex items-center justify-between bg-gray-900/40 p-3 rounded-xl border border-gray-800/50">
+                                        <div>
+                                          <div className="text-xs font-bold text-gray-200">{task.title}</div>
+                                          <div className="text-[10px] text-gray-500">{task.status === 'open' ? 'Needs Volunteer' : `Assigned to ${task.assignedTo === user?.email ? 'You' : 'Others'}`}</div>
+                                        </div>
+                                        {task.status === 'open' ? (
+                                          <button 
+                                            onClick={() => acceptTask(task._id, report._id)}
+                                            className="px-3 py-1 bg-[#4DA3FF] text-black text-[10px] font-bold rounded-lg hover:bg-[#4DA3FF]/90 transition-colors"
+                                          >
+                                            Accept Task
+                                          </button>
+                                        ) : (
+                                          <div className={`px-2 py-1 rounded text-[10px] font-bold ${task.status === 'completed' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                                            {task.status}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-4 pt-4 border-t border-gray-800/50 flex items-center justify-between">
+                                  <span className="text-[10px] text-gray-500 font-medium italic">No active missions for this issue yet.</span>
+                                  <button 
+                                    onClick={() => initiateTasks(report._id)}
+                                    disabled={isInitiating[report._id]}
+                                    className="px-4 py-2 bg-[#4CAF50]/10 text-[#4CAF50] border border-[#4CAF50]/30 text-[10px] font-bold rounded-lg hover:bg-[#4CAF50]/20 transition-all uppercase tracking-wider flex items-center gap-2"
+                                  >
+                                    {isInitiating[report._id] ? (
+                                      <><Loader2 size={12} className="animate-spin" /> Processing...</>
+                                    ) : (
+                                      "Volunteer for this Issue"
+                                    )}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

@@ -188,9 +188,16 @@ export function VolunteerMatching() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-500 mb-3 uppercase font-bold tracking-widest">
-                    <MapPin size={12} className="text-[#4DA3FF]" />
-                    {addresses[task._id] || "Resolving location..."}
+                  <div className="flex items-center gap-3 text-[10px] text-gray-500 mb-3 uppercase font-bold tracking-widest">
+                    <div className="flex items-center gap-1">
+                      <MapPin size={12} className="text-[#4DA3FF]" />
+                      {addresses[task._id] || "Resolving location..."}
+                    </div>
+                    {task.distanceKm !== undefined && task.distanceKm !== null && (
+                      <div className="bg-gray-700/50 px-2 py-0.5 rounded border border-gray-600 text-gray-300">
+                        {task.distanceKm.toFixed(1)} km away
+                      </div>
+                    )}
                   </div>
                   <p className="text-sm text-gray-400 mb-4 bg-gray-900/30 p-3 rounded-xl border border-gray-700/30 italic">
                     "{task.description}"

@@ -46,6 +46,7 @@ const taskSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
   status: { type: String, default: 'open' },
+  assignedTo: String,
   reportId: { type: mongoose.Schema.Types.ObjectId, ref: 'Report' },
   urgencyScore: { type: Number, default: 0 },
   requiredSkills: [String],
@@ -157,16 +158,36 @@ app.post('/api/reports', async (req, res) => {
     const newReport = new Report(reportData);
     await newReport.save();
 
-    if (newReport.urgencyScore >= 40) {
-      await generateTasksForReport(newReport); 
-    }
+    await generateTasksForReport(newReport); 
+
     res.status(201).json(newReport);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// --- Task Template Engine (Kept as is) ---
+app.post('/api/reports/:id/tasks/initiate', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ message: 'Report not found' });
+    
+    await generateTasksForReport(report);
+    const tasks = await Task.find({ reportId: report._id });
+    
+    if (tasks.length > 0 && email) {
+      tasks[0].assignedTo = email;
+      tasks[0].status = 'assigned';
+      await tasks[0].save();
+    }
+    
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
 const generateTasksForReport = async (report) => {
   const descLower = report.description ? report.description.toLowerCase() : "";
   const tasksToCreate = [];
@@ -277,6 +298,18 @@ app.get('/api/tasks', async (req, res) => {
   res.json(tasks);
 });
 
+// Haversine distance helper
+const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
 app.get('/api/tasks/recommendations', async (req, res) => {
   try {
     const { email } = req.query;
@@ -284,9 +317,20 @@ app.get('/api/tasks/recommendations', async (req, res) => {
     const openTasks = await Task.find({ status: 'open' });
     const scoredTasks = openTasks.map(task => {
       let matchScore = 0;
+      let distanceKm = null;
+      
       const matchedSkills = task.requiredSkills.filter(skill => user.skills?.includes(skill));
       matchScore += (matchedSkills.length * 20) + (task.urgencyScore * 0.5);
-      return { ...task.toObject(), matchScore, matchedSkills };
+      
+      if (user.location?.lat && user.location?.lng && task.location?.lat && task.location?.lng) {
+        distanceKm = getDistanceInKm(user.location.lat, user.location.lng, task.location.lat, task.location.lng);
+        // Boost score based on proximity
+        if (distanceKm <= 5) matchScore += 40;
+        else if (distanceKm <= 15) matchScore += 20;
+        else if (distanceKm <= 50) matchScore += 10;
+      }
+      
+      return { ...task.toObject(), matchScore, matchedSkills, distanceKm };
     });
     scoredTasks.sort((a, b) => b.matchScore - a.matchScore);
     res.json(scoredTasks.slice(0, 10));
@@ -294,8 +338,33 @@ app.get('/api/tasks/recommendations', async (req, res) => {
 });
 
 app.put('/api/tasks/:id/assign', async (req, res) => {
-  const task = await Task.findByIdAndUpdate(req.params.id, { status: 'assigned' }, { new: true });
-  res.json(task);
+  try {
+    const { email } = req.body;
+    const task = await Task.findByIdAndUpdate(
+      req.params.id, 
+      { status: 'assigned', assignedTo: email }, 
+      { new: true }
+    );
+    res.json(task);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+app.get('/api/tasks/assigned/:email', async (req, res) => {
+  try {
+    const tasks = await Task.find({ assignedTo: req.params.email }).sort({ createdAt: -1 }).populate('reportId');
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/tasks/report/:reportId', async (req, res) => {
+  try {
+    const tasks = await Task.find({ reportId: req.params.reportId }).sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 app.put('/api/tasks/:id/complete', async (req, res) => {

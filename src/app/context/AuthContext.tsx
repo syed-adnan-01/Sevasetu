@@ -5,6 +5,7 @@ interface User {
   email: string;
   name: string;
   role: string;
+  location?: { lat: number; lng: number };
 }
 
 interface AuthContextType {
@@ -12,6 +13,7 @@ interface AuthContextType {
   login: (email: string, password?: string) => Promise<void>;
   signup: (name: string, email: string, password?: string) => Promise<void>;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Login failed");
 
-      const newUser = { email: data.user.email, name: data.user.name, role: data.user.role };
+      const newUser = { email: data.user.email, name: data.user.name, role: data.user.role, location: data.user.location };
       setUser(newUser);
       localStorage.setItem("sevasetu_user", JSON.stringify(newUser));
       localStorage.setItem("sevasetu_token", data.token);
@@ -52,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Signup failed");
 
-      const newUser = { email: data.user.email, name: data.user.name, role: data.user.role };
+      const newUser = { email: data.user.email, name: data.user.name, role: data.user.role, location: data.user.location };
       setUser(newUser);
       localStorage.setItem("sevasetu_user", JSON.stringify(newUser));
       localStorage.setItem("sevasetu_token", data.token);
@@ -68,8 +70,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("sevasetu_token");
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updates };
+      localStorage.setItem("sevasetu_user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

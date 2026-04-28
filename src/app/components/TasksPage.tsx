@@ -1,15 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ClipboardList, Clock, AlertCircle, CheckCircle2, ChevronRight, MapPin, X, Camera, Send, Loader2, Navigation } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import EXIF from "exif-js";
 import { API_BASE_URL } from "../../config";
+import { useAuth } from "../context/AuthContext";
 
 export function TasksPage() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [addresses, setAddresses] = useState<Record<string, string>>({});
+  const addressCache = useRef<Record<string, boolean>>({});
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [taskAddress, setTaskAddress] = useState("");
   const [completionProof, setCompletionProof] = useState<string | null>(null);
   const [completionNotes, setCompletionNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,17 +24,25 @@ export function TasksPage() {
 
   useEffect(() => {
     fetchTasks();
+    const interval = setInterval(() => {
+      fetchTasks();
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchTasks = async () => {
+    if (!user?.email) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks`);
+      const response = await fetch(`${API_BASE_URL}/tasks/assigned/${user.email}`);
       const data = await response.json();
       setTasks(data);
       
-      // Resolve addresses for all tasks in the background
+      // Resolve addresses for all tasks in the background, caching to avoid API spam
       data.forEach((task: any) => {
-        if (task.location?.lat) resolveAddress(task._id, task.location.lat, task.location.lng);
+        if (task.location?.lat && !addressCache.current[task._id]) {
+          addressCache.current[task._id] = true;
+          resolveAddress(task._id, task.location.lat, task.location.lng);
+        }
       });
     } catch (err) {
       console.error("Failed to fetch tasks:", err);
@@ -335,7 +347,7 @@ export function TasksPage() {
                     <div className="flex items-start gap-2 text-gray-200">
                       <MapPin size={16} className="text-[#4CAF50] shrink-0 mt-0.5" />
                       <span className="text-sm leading-tight">
-                        {addresses[selectedTask._id] || "Resolving address..."}
+                        {taskAddress || addresses[selectedTask._id] || "Resolving address..."}
                       </span>
                     </div>
                   </div>

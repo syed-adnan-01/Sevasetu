@@ -11,6 +11,7 @@ import { Register } from "./components/Register";
 import { LandingPage } from "./components/LandingPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
+import { Profile } from "./components/Profile";
 
 import { ReportsHistory } from "./components/ReportsHistory";
 import { Analytics } from "./components/Analytics";
@@ -36,14 +37,14 @@ export const router = createBrowserRouter([
       { path: "history", Component: ReportsHistory },
       { path: "tasks", Component: TasksPage },
       { path: "volunteers", Component: VolunteerMatching },
-      { 
-        path: "admin", 
+      { path: "admin", 
         element: (
           <AdminRoute>
             <AdminPanel />
           </AdminRoute>
         ) 
       },
+      { path: "profile", Component: Profile },
       { path: "analytics", Component: Analytics },
       { path: "complete/:taskId", Component: TaskCompletion },
     ],
