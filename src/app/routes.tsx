@@ -14,6 +14,7 @@ import { AdminRoute } from "./components/AdminRoute";
 
 import { ReportsHistory } from "./components/ReportsHistory";
 import { Analytics } from "./components/Analytics";
+import { MyReports } from "./components/MyReports";
 
 export const router = createBrowserRouter([
   {
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: "dashboard", Component: Dashboard },
       { path: "reports", Component: ReportUpload },
+      { path: "my-reports", Component: MyReports },
       { path: "history", Component: ReportsHistory },
       { path: "tasks", Component: TasksPage },
       { path: "volunteers", Component: VolunteerMatching },

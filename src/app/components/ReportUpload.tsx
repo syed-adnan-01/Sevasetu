@@ -3,8 +3,28 @@ import { Camera, Mic, Send, Sparkles, X, Loader2, Save, MapPin, Navigation } fro
 import Tesseract from "tesseract.js";
 import EXIF from "exif-js";
 import { API_BASE_URL } from "../../config";
+import { useAuth } from "../context/AuthContext";
+import { MapContainer, TileLayer, CircleMarker, useMapEvents, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+
+function ChangeView({ center }: { center: [number, number] }) {
+  const map = useMap();
+  map.setView(center, map.getZoom());
+  return null;
+}
+
+function LocationPicker({ reverseGeocode }: { reverseGeocode: any }) {
+  useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng;
+      reverseGeocode(lat, lng, "map click");
+    },
+  });
+  return null;
+}
 
 export function ReportUpload() {
+  const { user } = useAuth();
   const [preview, setPreview] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -13,6 +33,10 @@ export function ReportUpload() {
   const [offlineReports, setOfflineReports] = useState<any[]>([]);
   const [location, setLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   const recognitionRef = useRef<any>(null);
 
@@ -42,6 +66,24 @@ export function ReportUpload() {
     if (saved) setOfflineReports(JSON.parse(saved));
   }, []);
 
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.length > 2 && showSuggestions) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`);
+          const data = await res.json();
+          setSuggestions(data);
+        } catch (err) {
+          console.error("Search failed", err);
+        }
+      } else {
+        setSuggestions([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, showSuggestions]);
+
   const reverseGeocode = async (lat: number, lng: number, source: string) => {
     try {
       setStatus(`Resolving address for ${source}...`);
@@ -49,11 +91,23 @@ export function ReportUpload() {
       const data = await res.json();
       const address = data.display_name.split(',').slice(0, 4).join(',');
       setLocation({ lat, lng, address });
+      setSearchQuery(address);
+      setShowSuggestions(false);
       setStatus(`Location verified: ${address}`);
     } catch (err) {
       setLocation({ lat, lng, address: "Location Verified" });
+      setSearchQuery("Location Verified");
+      setShowSuggestions(false);
       setStatus(`Location pinned at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     }
+  };
+
+  const handleSelectSuggestion = (suggestion: any) => {
+    const lat = parseFloat(suggestion.lat);
+    const lng = parseFloat(suggestion.lon);
+    setLocation({ lat, lng, address: suggestion.display_name });
+    setSearchQuery(suggestion.display_name);
+    setShowSuggestions(false);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,12 +205,25 @@ export function ReportUpload() {
   };
 
   const handleSubmit = async () => {
+    setFormError("");
+    
+    if (!description.trim() && !preview) {
+      setFormError("You must provide either a description or an image.");
+      return;
+    }
+    
+    if (!location || location.lat === 0 || location.lng === 0) {
+      setFormError("Location is compulsory. Please select a verified location from the suggestions, pin it on the map, or use the GPS button.");
+      return;
+    }
+
     const report = {
       description,
       image: preview,
       timestamp: new Date().toISOString(),
       status: "pending",
-      location: location || { lat: 0, lng: 0 }
+      location: location,
+      userEmail: user?.email
     };
 
     if (!navigator.onLine) {
@@ -310,20 +377,63 @@ export function ReportUpload() {
                 </button>
               </div>
               
-              {location ? (
-                <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
-                  <Navigation size={18} className="text-[#4CAF50] shrink-0" />
-                  <div>
-                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Verified Address</div>
-                    <div className="text-xs text-gray-200 leading-tight">
-                      {location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
-                    </div>
+              <div className="flex flex-col gap-2 mb-3 relative">
+                <input
+                  type="text"
+                  value={showSuggestions ? searchQuery : (location?.address || searchQuery || (location && location.lat !== 0 ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : ""))}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setLocation(null);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder="Type your location manually or click on the map below..."
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700/50 rounded-xl focus:outline-none focus:border-[#4DA3FF] focus:ring-1 focus:ring-[#4DA3FF]/20 transition-all text-white placeholder-gray-500 text-sm"
+                />
+                
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-[52px] left-0 right-0 bg-gray-800 border border-gray-700 rounded-xl overflow-hidden z-[1000] shadow-xl">
+                    {suggestions.map((s, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => handleSelectSuggestion(s)}
+                        className="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700/50 last:border-0 text-sm text-gray-200 transition-colors"
+                      >
+                        {s.display_name}
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ) : (
-                <p className="text-xs text-gray-500 italic">No location pinned yet. Upload a geotagged photo or use the GPS button.</p>
-              )}
+                )}
+              </div>
+
+              <div className="h-64 rounded-xl overflow-hidden relative z-0 border border-gray-700/50">
+                <MapContainer 
+                  center={location ? [location.lat, location.lng] : [28.6139, 77.2090]}
+                  zoom={location ? 15 : 11} 
+                  style={{ height: '100%', width: '100%', background: '#0B0F14' }}
+                >
+                  <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+                  />
+                  {location && location.lat !== 0 && <ChangeView center={[location.lat, location.lng]} />}
+                  <LocationPicker reverseGeocode={reverseGeocode} />
+                  {location && (
+                    <CircleMarker 
+                      center={[location.lat, location.lng]} 
+                      radius={8}
+                      pathOptions={{ fillColor: '#4DA3FF', color: '#4DA3FF', fillOpacity: 0.8 }}
+                    />
+                  )}
+                </MapContainer>
+              </div>
             </div>
+
+            {formError && (
+              <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-sm font-medium">
+                {formError}
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-4">
               <button

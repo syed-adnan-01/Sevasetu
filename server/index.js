@@ -37,7 +37,8 @@ const reportSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   status: { type: String, default: 'pending' },
   urgencyScore: { type: Number, default: 0 },
-  location: { lat: Number, lng: Number, address: String }
+  location: { lat: Number, lng: Number, address: String },
+  userEmail: String
 });
 const Report = mongoose.model('Report', reportSchema);
 
@@ -260,6 +261,15 @@ app.put('/api/auth/profile', async (req, res) => {
 app.get('/api/reports', async (req, res) => {
   const reports = await Report.find().sort({ timestamp: -1 });
   res.json(reports);
+});
+
+app.get('/api/reports/user/:email', async (req, res) => {
+  try {
+    const reports = await Report.find({ userEmail: req.params.email }).sort({ timestamp: -1 });
+    res.json(reports);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 app.get('/api/tasks', async (req, res) => {

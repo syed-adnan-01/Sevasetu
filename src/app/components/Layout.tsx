@@ -12,7 +12,8 @@ export function Layout() {
   const navItems = [
     { path: "/app/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/app/reports", icon: Camera, label: "New Report" },
-    { path: "/app/history", icon: FileText, label: "History" },
+    { path: "/app/my-reports", icon: User, label: "My Complaints" },
+    { path: "/app/history", icon: FileText, label: "Public Issues" },
     { path: "/app/tasks", icon: ListTodo, label: "Tasks" },
     { path: "/app/volunteers", icon: Users, label: "Volunteers" },
     { path: "/app/admin", icon: ShieldCheck, label: "Admin Panel", roles: ["admin"] },
