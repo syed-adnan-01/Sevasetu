@@ -1,24 +1,55 @@
 import { useState, useEffect } from "react";
-import { TrendingUp, Users, CheckCircle, AlertCircle, Clock, Loader2, FileText, RefreshCw } from "lucide-react";
+import { Plus, Bell, TrendingUp, Users, CheckCircle, AlertCircle, Clock, MapPin, Loader2, FileText, RefreshCw } from "lucide-react";
+import { API_BASE_URL } from "../../config";
 
 export function AdminPanel() {
   const [reports, setReports] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [addresses, setAddresses] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchReports();
+    fetchData();
   }, []);
 
-  const fetchReports = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/reports');
-      const data = await response.json();
-      setReports(Array.isArray(data) ? data : []);
+      const [reportsRes, tasksRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/reports`),
+        fetch(`${API_BASE_URL}/tasks`)
+      ]);
+      const reportsData = await reportsRes.json();
+      setReports(reportsData);
+      setTasks(await tasksRes.json());
+
+      // Resolve addresses
+      reportsData.forEach((r: any) => {
+        if (r.location?.lat) resolveAddress(r._id, r.location.lat, r.location.lng);
+      });
     } catch (err) {
-      console.error("Failed to fetch reports:", err);
-      setReports([]);
+      console.error("Failed to fetch data:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resolveAddress = async (id: string, lat: number, lng: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      const addr = data.address.suburb || data.address.city || "Verified Location";
+      setAddresses(prev => ({ ...prev, [id]: addr }));
+    } catch (err) {
+      setAddresses(prev => ({ ...prev, [id]: "Location Verified" }));
+    }
+  };
+
+  const handleVerifyTask = async (taskId: string) => {
+    try {
+      await fetch(`${API_BASE_URL}/tasks/${taskId}/verify`, { method: "PUT" });
+      fetchData(); // Refresh to update map/report status
+    } catch (err) {
+      console.error("Verification failed:", err);
     }
   };
 
@@ -29,120 +60,111 @@ export function AdminPanel() {
     { zone: "West Side", available: 29, active: 18 },
   ];
 
-  const recentActivity = [
-    { action: "Task completed", detail: "Water distribution in Zone A", time: "5 min ago", type: "success" },
-    { action: "New report", detail: "Power outage in East District", time: "12 min ago", type: "info" },
-    { action: "Volunteers joined", detail: "3 volunteers joined medical task", time: "18 min ago", type: "success" },
-    { action: "Critical alert", detail: "Contamination detected in water source", time: "25 min ago", type: "critical" },
-  ];
+  const pendingVerification = tasks.filter(t => t.status === 'completed' && !t.verifiedByAdmin);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case "critical": return "bg-[#FF4D4D]/20 border-[#FF4D4D] text-[#FF4D4D]";
-      case "high": return "bg-[#FFC857]/20 border-[#FFC857] text-[#FFC857]";
-      default: return "bg-[#4DA3FF]/20 border-[#4DA3FF] text-[#4DA3FF]";
-    }
-  };
-
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case "success": return "bg-[#4CAF50]/20 text-[#4CAF50]";
-      case "critical": return "bg-[#FF4D4D]/20 text-[#FF4D4D]";
-      default: return "bg-[#4DA3FF]/20 text-[#4DA3FF]";
+      case "critical":
+        return "bg-[#FF4D4D]/20 border-[#FF4D4D] text-[#FF4D4D]";
+      case "high":
+        return "bg-[#FFC857]/20 border-[#FFC857] text-[#FFC857]";
+      default:
+        return "bg-[#4DA3FF]/20 border-[#4DA3FF] text-[#4DA3FF]";
     }
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 sm:p-6">
+    <div className="min-h-full bg-gradient-to-br from-[#0B0F14] via-gray-900 to-[#0B0F14] p-4 lg:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-xl hover:shadow-[#4DA3FF]/20 hover:border-[#4DA3FF]/50 transition-all duration-300 cursor-pointer">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4DA3FF]/20 hover:scale-105 hover:border-[#4DA3FF]/50 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-xs sm:text-sm">Total Reports</div>
-              <FileText className="text-[#4DA3FF]" size={18} />
+              <div className="text-gray-400 text-sm">Total Reports</div>
+              <FileText className="text-[#4DA3FF]" size={20} />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold mb-1">{reports.length}</div>
+            <div className="text-3xl font-bold mb-1">{reports.length}</div>
             <div className="text-xs text-[#4CAF50] flex items-center gap-1">
-              <TrendingUp size={11} />
+              <TrendingUp size={12} />
               Real-time
             </div>
           </div>
 
-          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-xl hover:shadow-[#4CAF50]/20 hover:border-[#4CAF50]/50 transition-all duration-300 cursor-pointer">
+          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4CAF50]/20 hover:scale-105 hover:border-[#4CAF50]/50 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-xs sm:text-sm">Active Volunteers</div>
-              <Users className="text-[#4CAF50]" size={18} />
+              <div className="text-gray-400 text-sm">Active Volunteers</div>
+              <Users className="text-[#4CAF50]" size={20} />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold mb-1">119</div>
+            <div className="text-3xl font-bold mb-1">119</div>
             <div className="text-xs text-gray-400">In the field</div>
           </div>
 
-          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-xl hover:shadow-[#4CAF50]/20 hover:border-[#4CAF50]/50 transition-all duration-300 cursor-pointer">
+          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#4CAF50]/20 hover:scale-105 hover:border-[#4CAF50]/50 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-xs sm:text-sm">Pending Tasks</div>
-              <CheckCircle className="text-[#4CAF50]" size={18} />
+              <div className="text-gray-400 text-sm">Pending Tasks</div>
+              <CheckCircle className="text-[#4CAF50]" size={20} />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold mb-1">47</div>
+            <div className="text-3xl font-bold mb-1">47</div>
             <div className="text-xs text-gray-400">Today</div>
           </div>
 
-          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-xl hover:shadow-[#FF4D4D]/20 hover:border-[#FF4D4D]/50 transition-all duration-300 cursor-pointer">
+          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-[#FF4D4D]/20 hover:scale-105 hover:border-[#FF4D4D]/50 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-gray-400 text-xs sm:text-sm">Critical Issues</div>
-              <AlertCircle className="text-[#FF4D4D]" size={18} />
+              <div className="text-gray-400 text-sm">Critical Issues</div>
+              <AlertCircle className="text-[#FF4D4D]" size={20} />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold mb-1">
+            <div className="text-3xl font-bold mb-1">
               {reports.filter(r => r.urgencyScore > 70).length || 2}
             </div>
             <div className="text-xs text-[#FF4D4D]">Need attention</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Real-time Reports */}
-            <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                  <AlertCircle className="text-[#FF4D4D]" size={18} />
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <AlertCircle className="text-[#FF4D4D]" size={20} />
                   Real-time Reports
                 </h3>
-                <button onClick={fetchReports} className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
-                  <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+                <button 
+                  onClick={fetchData}
+                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
                 </button>
               </div>
 
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-500">
-                  <Loader2 className="animate-spin mb-2" size={28} />
-                  <p className="text-sm">Loading database reports...</p>
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                  <Loader2 className="animate-spin mb-2" size={32} />
+                  <p>Loading database reports...</p>
                 </div>
               ) : reports.length === 0 ? (
-                <div className="text-center py-10 bg-gray-800/30 rounded-xl border border-dashed border-gray-700">
-                  <p className="text-gray-500 text-sm">No reports found in the database.</p>
+                <div className="text-center py-12 bg-gray-800/30 rounded-xl border border-dashed border-gray-700">
+                  <p className="text-gray-500">No reports found in the database.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {reports.slice(0, 5).map((report) => (
                     <div
                       key={report._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 transition-all duration-300 cursor-pointer gap-3"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 hover:bg-gray-800/70 hover:scale-[1.02] transition-all duration-300 cursor-pointer gap-4"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
                         {report.image && (
-                          <img src={report.image} className="w-10 h-10 rounded-lg object-cover border border-gray-700 shrink-0" alt="Report" />
+                          <img src={report.image} className="w-12 h-12 rounded-lg object-cover border border-gray-700" alt="Report" />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate text-sm sm:text-base">{report.description || "No description"}</div>
-                          <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                            <Clock size={12} />
-                            {new Date(report.timestamp).toLocaleString()}
+                          <div className="font-medium truncate">{report.description || "No description"}</div>
+                          <div className="text-sm text-gray-400 mt-1 flex items-center gap-2">
+                            <MapPin size={14} className="text-[#4DA3FF]" />
+                            {addresses[report._id] || "Resolving location..."}
                           </div>
                         </div>
                       </div>
-                      <div className={`px-3 py-1 rounded-lg border text-[10px] font-medium ${getSeverityColor(report.urgencyScore > 70 ? 'critical' : 'moderate')} whitespace-nowrap self-start sm:self-auto`}>
-                        {report.status?.toUpperCase()}
+                      <div className={`px-3 py-1 rounded-lg border text-[10px] sm:text-xs font-medium ${getSeverityColor(report.urgencyScore > 70 ? 'critical' : 'moderate')} whitespace-nowrap`}>
+                        {report.status.toUpperCase()}
                       </div>
                     </div>
                   ))}
@@ -150,10 +172,9 @@ export function AdminPanel() {
               )}
             </div>
 
-            {/* Volunteer Availability */}
-            <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-xl">
-              <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-                <Users className="text-[#4CAF50]" size={18} />
+            <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Users className="text-[#4CAF50]" size={20} />
                 Volunteer Availability by Zone
               </h3>
               <div className="space-y-4">
@@ -162,8 +183,10 @@ export function AdminPanel() {
                   return (
                     <div key={index}>
                       <div className="flex items-center justify-between mb-2 gap-2">
-                        <div className="font-medium text-sm truncate">{zone.zone}</div>
-                        <div className="text-xs text-gray-400 whitespace-nowrap">{zone.active} / {zone.available}</div>
+                        <div className="font-medium truncate">{zone.zone}</div>
+                        <div className="text-sm text-gray-400 whitespace-nowrap">
+                          {zone.active} / {zone.available} active
+                        </div>
                       </div>
                       <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
                         <div
@@ -178,23 +201,66 @@ export function AdminPanel() {
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-xl h-fit">
-            <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-              <Clock className="text-[#4DA3FF]" size={18} />
-              Recent Activity
+          <div className="backdrop-blur-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl p-4 lg:p-6 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:border-gray-600 transition-all duration-300 h-fit">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <CheckCircle className="text-[#4CAF50]" size={20} />
+              Pending Verification
             </h3>
-            <div className="space-y-3">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="p-3 sm:p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer">
-                  <div className={`inline-block px-2 py-1 rounded text-xs font-medium mb-2 ${getActivityColor(activity.type)}`}>
-                    {activity.action}
+            
+            {pendingVerification.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 bg-gray-800/30 rounded-xl border border-dashed border-gray-700">
+                No tasks awaiting verification.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingVerification.map((task) => (
+                  <div
+                    key={task._id}
+                    className="p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 flex flex-col gap-3 transition-all duration-300"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-semibold">{task.title}</div>
+                        <div className="text-xs text-gray-400 mt-1">Submitted recently</div>
+                      </div>
+                      <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">
+                        Review
+                      </span>
+                    </div>
+                    
+                    {task.completionNotes && (
+                      <div className="bg-gray-900/50 p-3 rounded-lg text-sm text-gray-300 border border-gray-700">
+                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">Volunteer Notes</div>
+                        "{task.completionNotes}"
+                      </div>
+                    )}
+
+                    {task.proofLocation?.address && (
+                      <div className="bg-[#4CAF50]/10 p-3 rounded-lg border border-[#4CAF50]/20 flex items-start gap-2">
+                        <MapPin size={14} className="text-[#4CAF50] shrink-0 mt-0.5" />
+                        <div className="text-[10px] text-gray-300 leading-tight">
+                          <span className="font-bold text-[#4CAF50] block mb-0.5">VERIFIED LOCATION</span>
+                          {task.proofLocation.address}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {task.completionProof && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-gray-700">
+                        <img src={task.completionProof} alt="Proof" className="w-full h-auto object-cover max-h-40" />
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={() => handleVerifyTask(task._id)}
+                      className="w-full mt-2 py-2 bg-[#4CAF50]/10 text-[#4CAF50] hover:bg-[#4CAF50] hover:text-white border border-[#4CAF50]/30 font-bold rounded-lg transition-colors flex justify-center items-center gap-2"
+                    >
+                      <CheckCircle size={18} /> Verify & Close Task
+                    </button>
                   </div>
-                  <div className="text-sm mb-1">{activity.detail}</div>
-                  <div className="text-xs text-gray-500">{activity.time}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
