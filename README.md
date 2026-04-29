@@ -14,6 +14,6 @@ Seva-Setu is a modern, responsive disaster relief management dashboard built wit
 3. **Environment Setup**: 
    - Rename `.env.example` to `.env`
    - Open `.env` and replace the `MONGODB_URI` placeholder with your own MongoDB Atlas connection string.
-4. Start the server: `node index.js`
+4. Start the server: `node index.cjs`
 
 The backend runs on `http://localhost:5000` and handles report storage and urgency scoring via MongoDB.
